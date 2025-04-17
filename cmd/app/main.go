@@ -16,6 +16,9 @@ func main() {
 		ErrorHandler: customErrorHandler,
 	})
 	err := env.Load()
+	if err != nil {
+		log.Fatalf("Failed to load environment variables: %v", err)
+	}
 
 	// Initialize the database connection
 	err = database.InitDatabase(env.Get("DB_USER"), env.Get("DB_PASSWORD"), env.Get("DB_NAME"), env.Get("DB_HOST"), env.Get("DB_PORT"), env.Get("DB_SSLMODE"))
@@ -30,6 +33,9 @@ func main() {
 	}
 
 	// Initialize the SessionManager
+	if env.Get("SECRET_KEY") == "" {
+		log.Fatal("SECRET_KEY environment variable is not set")
+	}
 	sessionManager.InitSessionManager(env.Get("SECRET_KEY"), 3*time.Hour)
 
 	api.SetupRoutes(app)
