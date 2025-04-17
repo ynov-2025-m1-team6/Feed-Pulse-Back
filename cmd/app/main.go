@@ -8,6 +8,7 @@ import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/sessionManager"
 	"log"
+	"os"
 	"time"
 )
 
@@ -17,7 +18,9 @@ func main() {
 	})
 	err := env.Load()
 	if err != nil {
-		log.Fatalf("Failed to load environment variables: %v", err)
+		if !os.IsNotExist(err) {
+			log.Fatalf("Failed to load environment variables: %v", err)
+		}
 	}
 
 	// Initialize the database connection
