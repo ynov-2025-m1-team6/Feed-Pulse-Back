@@ -6,7 +6,9 @@ import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/sessionManager"
 	"log"
+	"time"
 )
 
 func main() {
@@ -14,14 +16,22 @@ func main() {
 		ErrorHandler: customErrorHandler,
 	})
 	err := env.Load()
+
+	// Initialize the database connection
 	err = database.InitDatabase(env.Get("DB_USER"), env.Get("DB_PASSWORD"), env.Get("DB_NAME"), env.Get("DB_HOST"), env.Get("DB_PORT"), env.Get("DB_SSLMODE"))
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
+
+	// Initialize and automigrate the models
 	err = models.InitModels()
 	if err != nil {
 		log.Fatalf("Failed to initialize models: %v", err)
 	}
+
+	// Initialize the SessionManager
+	sessionManager.InitSessionManager(env.Get("SECRET_KEY"), 3*time.Hour)
+
 	api.SetupRoutes(app)
 
 	log.Printf("Starting server on localhost:3000\n")
