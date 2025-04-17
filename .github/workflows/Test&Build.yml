@@ -31,6 +31,7 @@ jobs:
               - name: Run tests
                 run: go test -v -count=1 -p 4 -coverprofile=coverage.txt -covermode=atomic ./...
     build:
+        needs: test
         runs-on: ubuntu-latest
         steps:
               - name: Checkout code
