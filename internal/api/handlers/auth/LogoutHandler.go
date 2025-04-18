@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"github.com/gofiber/fiber/v2"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/sessionManager"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/httpUtils"
 )
@@ -18,23 +19,15 @@ import (
 // @Router /api/auth/logout [get]
 // @Security ApiKeyAuth
 func LogoutHandler(c *fiber.Ctx) error {
-	// get the token from the Authorization Bearer header
-	token := c.Get("Authorization")
-	if token == "" {
-		return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("no token provided"))
+	// Get token from context (already validated by middleware)
+	token, ok := middleware.GetToken(c)
+	if !ok {
+		return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("no token found in context"))
 	}
-	if len(token) < 7 {
-		return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("invalid token format"))
-	}
-	// remove the "Bearer " prefix
-	token = token[7:]
-	// check if the token is valid
-	valid, err := sessionManager.Instance.ValidateSession(token)
-	if err != nil || !valid {
-		return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("invalid token"))
-	}
-	// remove the token from the session
+	
+	// Remove the token from the session
 	sessionManager.Instance.DeleteSession(token)
-	// return a success message
+	
+	// Return a success message
 	return httpUtils.NewMessage(c, fiber.StatusOK, "logged out successfully")
 }
