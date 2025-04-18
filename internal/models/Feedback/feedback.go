@@ -1,8 +1,9 @@
 package Feedback
 
 import (
-	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/BaseModel"
 	"time"
+
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/BaseModel"
 )
 
 type Feedback struct {
