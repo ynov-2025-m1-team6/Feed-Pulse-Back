@@ -11,6 +11,11 @@ func FetchAndSaveFeedbacks(feedbacks []feedbackModel.Feedback) (int, []string, e
 	successCount := 0
 	errors := make([]string, 0)
 
+	// Early return if no feedbacks to process
+	if len(feedbacks) == 0 {
+		return 0, errors, nil
+	}
+
 	// Use a transaction to ensure data integrity
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -22,7 +27,7 @@ func FetchAndSaveFeedbacks(feedbacks []feedbackModel.Feedback) (int, []string, e
 		result := tx.Create(&feedback)
 		if result.Error != nil {
 			errors = append(errors, result.Error.Error())
-			continue
+			continue // Continue processing other feedbacks instead of returning immediately
 		}
 		successCount++
 	}
@@ -30,6 +35,7 @@ func FetchAndSaveFeedbacks(feedbacks []feedbackModel.Feedback) (int, []string, e
 	// Commit transaction if there are successful records
 	if successCount > 0 {
 		if err := tx.Commit().Error; err != nil {
+			// Don't add commit errors to the errors slice, as it would be returned separately as the function error
 			return successCount, errors, err
 		}
 	} else {

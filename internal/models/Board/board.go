@@ -11,5 +11,5 @@ type Board struct {
 	Name string `json:"name" gorm:"not null"`
 
 	Users     []User.User         `gorm:"many2many:user_boards;"`
-	Feedbacks []Feedback.Feedback `gorm:"foreignKey:id"`
+	Feedbacks []Feedback.Feedback `gorm:"foreignKey:BoardID"`
 }
