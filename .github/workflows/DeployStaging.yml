@@ -6,6 +6,21 @@ on:
         - develop
 
 jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name : Login to Docker Hub
+              run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            - name: Build Docker image
+              run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/feed-pulse-back:${{ github.sha }} .
+            - name: Push Docker image
+              run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/feed-pulse-back:${{ github.sha }}
+            - name: Tag latest Docker image with latest tag
+              run: docker tag ${{ secrets.DOCKERHUB_USERNAME }}/feed-pulse-back:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/feed-pulse-back:latestdev
+            - name: Push Docker image with latest tag
+              run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/feed-pulse-back:latestdev
     deploy:
         runs-on: ubuntu-latest
         steps:
