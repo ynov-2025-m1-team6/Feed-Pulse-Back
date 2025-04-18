@@ -11,6 +11,10 @@ import (
 
 func SentimentAnalysis(feedback Feedback.Feedback) (Analysis.Analysis, error) {
 
+	err := env.Load()
+	if err != nil {
+		return Analysis.Analysis{}, fmt.Errorf("failed to load environment variables: %v", err)
+	}
 	// If api key is empty it will load from MISTRAL_API_KEY env var
 	client := mistral.NewMistralClientDefault(env.Get("MISTRAL_API_KEY"))
 
