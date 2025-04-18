@@ -26,7 +26,6 @@ func SetupRoutes(app *fiber.App) {
 	authGrp.Post("/register", auth.RegisterHandler)
 	authGrp.Get("/logout", auth.LogoutHandler)
 
-
 	// Feedback routes
 	feedbacks := api.Group("/feedbacks")
 	feedbacks.Get("/", Feedback.GetAllFeedbacksHandler)
@@ -36,7 +35,7 @@ func SetupRoutes(app *fiber.App) {
 	feedbacks.Delete("/:id", Feedback.DeleteFeedbackHandler)
 	feedbacks.Get("/channel/:channel", Feedback.GetFeedbacksByChannelHandler)
 
-	// Analysis routes
+	// Analyses routes
 	analyses := api.Group("/analyses")
 	analyses.Get("/", Analysis.GetAllAnalysesHandler)
 	analyses.Get("/:id", Analysis.GetAnalysisByIDHandler)
