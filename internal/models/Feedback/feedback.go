@@ -19,9 +19,3 @@ type FeedbackJson struct {
 	Channel string    `json:"channel"`
 	Text    string    `json:"text"`
 }
-
-type FeedbackJson struct {
-	Date    time.Time `json:"date"`
-	Channel string    `json:"channel"`
-	Text    string    `json:"text"`
-}
