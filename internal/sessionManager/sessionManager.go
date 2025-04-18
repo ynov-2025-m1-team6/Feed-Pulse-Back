@@ -99,3 +99,8 @@ func (sm *SessionManager) cleanupExpiredSessions() {
 		sm.mu.Unlock()
 	}
 }
+
+// GetSecretKey returns the secret key used for signing JWT tokens
+func (sm *SessionManager) GetSecretKey() []byte {
+	return sm.secretKey
+}

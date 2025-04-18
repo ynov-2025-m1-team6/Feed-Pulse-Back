@@ -1,0 +1,240 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is the API documentation for the Feed Pulse application.",
+        "title": "Feed Pulse API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:3000",
+    "basePath": "/",
+    "paths": {
+        "/api/auth/login": {
+            "post": {
+                "description": "Login a user with username/email and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Authenticate a user",
+                "parameters": [
+                    {
+                        "description": "User login credentials",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.LoginUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "login successful response",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "authentication error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "user not found error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Logout a user by invalidating their session token",
+                "consumes": [
+                    "*/*"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout a user",
+                "responses": {
+                    "200": {
+                        "description": "user successfully logged out",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPMessage"
+                        }
+                    },
+                    "401": {
+                        "description": "authentication error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "description": "Register a new user with username, email and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "User registration data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.RegisterUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "registration successful response",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "409": {
+                        "description": "conflict error - resource already exists",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "description": "Get the status of server",
+                "consumes": [
+                    "*/*"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ping"
+                ],
+                "summary": "Show the status of server",
+                "responses": {
+                    "200": {
+                        "description": "server status response",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPMessage"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "auth.LoginUser": {
+            "type": "object",
+            "required": [
+                "login",
+                "password"
+            ],
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.RegisterUser": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 8
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "httpUtils.HTTPError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "bad request"
+                }
+            }
+        },
+        "httpUtils.HTTPMessage": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "ok"
+                }
+            }
+        }
+    }
+}

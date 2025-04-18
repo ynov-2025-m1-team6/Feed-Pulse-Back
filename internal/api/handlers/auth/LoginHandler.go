@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/sessionManager"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/auth"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/httpUtils"
 )
 
 type LoginUser struct {
@@ -12,54 +13,56 @@ type LoginUser struct {
 	Password string `json:"password" validate:"required"`
 }
 
+// LoginHandler godoc
+// @Summary Authenticate a user
+// @Description Login a user with username/email and password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body LoginUser true "User login credentials"
+// @Success 200 {object} httpUtils.HTTPMessage "login successful response"
+// @Failure 400 {object} httpUtils.HTTPError "bad request error"
+// @Failure 401 {object} httpUtils.HTTPError "authentication error"
+// @Failure 404 {object} httpUtils.HTTPError "user not found error"
+// @Failure 500 {object} httpUtils.HTTPError "internal server error"
+// @Router /api/auth/login [post]
 func LoginHandler(c *fiber.Ctx) error {
+	return LoginHandlerWithRepo(c, &auth.DefaultUserRepository{})
+}
+
+// LoginHandlerWithRepo is the testable version of LoginHandler that accepts a repository
+func LoginHandlerWithRepo(c *fiber.Ctx, repo auth.UserRepository) error {
 	// Parse the request body into the LoginUser struct
 	var user LoginUser
 	if err := c.BodyParser(&user); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request payload",
-		})
+		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("invalid request payload"))
 	}
 
 	// Perform login logic here (e.g., check credentials against a database)
-	userUUID, err := auth.ValidateLoginRequest(user.Login, user.Password)
+	userUUID, err := auth.ValidateLoginRequestWithRepo(user.Login, user.Password, repo)
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrLoginRequired):
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Login is required",
-			})
+			return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("login is required"))
 		case errors.Is(err, auth.ErrPasswordRequired):
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Password is required",
-			})
+			return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("password is required"))
 		case errors.Is(err, auth.ErrInvalidCredentials):
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid credentials",
-			})
+			return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("invalid credentials"))
 		case errors.Is(err, auth.ErrUserNotFound):
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": "User not found",
-			})
+			return httpUtils.NewError(c, fiber.StatusNotFound, errors.New("user not found"))
 		default:
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Internal server error",
-			})
+			return httpUtils.NewError(c, fiber.StatusInternalServerError, errors.New("internal server error"))
 		}
 	}
 
 	// return the sessions JWT token
 	token, err := sessionManager.Instance.CreateSession(userUUID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create session",
-		})
+		return httpUtils.NewError(c, fiber.StatusInternalServerError, errors.New("failed to create session"))
 	}
 	// Set the token in the response header
 	c.Set("Authorization", "Bearer "+token)
 
 	// Respond with a success message
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Login successful",
-	})
+	return httpUtils.NewMessage(c, fiber.StatusOK, "login successful")
 }
