@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Board"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
 	"gorm.io/gorm"
 )
@@ -33,7 +34,17 @@ func GetFeedbackByID(id int) (Feedback.Feedback, error) {
 
 // CreateFeedback create a new feedback
 func CreateFeedback(feedback Feedback.Feedback) (Feedback.Feedback, error) {
-	result := database.DB.Create(&feedback)
+	// Check if the referenced board exists in the database
+	var board Board.Board
+	result := database.DB.Where("id = ?", feedback.BoardID).First(&board)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return Feedback.Feedback{}, errors.New("board not found: the referenced board_id does not exist")
+		}
+		return Feedback.Feedback{}, result.Error
+	}
+
+	result = database.DB.Create(&feedback)
 	if result.Error != nil {
 		return Feedback.Feedback{}, result.Error
 	}
@@ -97,4 +108,3 @@ func GetFeedbacksByChannel(channel string) ([]Feedback.Feedback, error) {
 	}
 	return feedbacks, nil
 }
-
