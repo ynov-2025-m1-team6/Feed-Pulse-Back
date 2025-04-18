@@ -25,8 +25,8 @@ ENV LANG=C.UTF-8
 WORKDIR /app
 
 COPY --from=buildergo /app/app .
-COPY --from=buildergo /app/docs/swagger.json ./docs/swagger.json
-COPY --from=buildergo /app/docs/swagger.yaml ./docs/swagger.yaml
+COPY --from=buildergo /app/docs/feed-pulse/swagger.json ./docs/feed-pulse/swagger.json
+COPY --from=buildergo /app/docs/feed-pulse/swagger.yaml ./docs/feed-pulse/swagger.yaml
 
 ENV PORT=8080
 EXPOSE 8080
