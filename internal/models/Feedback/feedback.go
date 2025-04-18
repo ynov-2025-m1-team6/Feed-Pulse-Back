@@ -13,3 +13,9 @@ type Feedback struct {
 
 	BoardID int `json:"board_id" gorm:"not null"`
 }
+
+type FeedbackJson struct {
+	Date    time.Time `json:"date"`
+	Channel string    `json:"channel"`
+	Text    string    `json:"text"`
+}
