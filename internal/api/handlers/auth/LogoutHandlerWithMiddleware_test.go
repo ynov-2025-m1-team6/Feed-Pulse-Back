@@ -13,24 +13,7 @@ import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/sessionManager"
 )
 
-// mockFiberCtx simulates the context for testing
-type mockFiberCtx struct {
-	*fiber.Ctx
-	token string
-}
-
-// setupMockContext creates a test version of LogoutHandler that sets up the context properly
-func setupMockLogoutHandler(token string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		// Manually set the token in the context as middleware would do
-		if token != "" {
-			c.Locals(middleware.TokenContextKey, token)
-		}
-		return LogoutHandler(c)
-	}
-}
-
-func TestLogoutHandler(t *testing.T) {
+func TestLogoutHandlerWithMiddleware(t *testing.T) {
 	// Initialize session manager for testing
 	sessionManager.InitSessionManager("test-secret-key", time.Hour)
 
@@ -41,9 +24,9 @@ func TestLogoutHandler(t *testing.T) {
 		t.Fatalf("Failed to create test session: %v", err)
 	}
 
-	// Setup test app
+	// Setup test app with middleware
 	app := fiber.New()
-	app.Get("/api/auth/logout", LogoutHandler)
+	app.Get("/api/auth/logout", middleware.AuthRequired(), LogoutHandler)
 
 	tests := []struct {
 		name           string
@@ -55,19 +38,19 @@ func TestLogoutHandler(t *testing.T) {
 			name:           "No token provided",
 			authHeader:     "",
 			expectedStatus: fiber.StatusUnauthorized,
-			expectedBody:   `{"error":"no token provided"}`,
+			expectedBody:   `{"error":"unauthorized: Missing or invalid authorization header"}`,
 		},
 		{
 			name:           "Invalid token format",
-			authHeader:     "Bearer",
+			authHeader:     "InvalidFormat",
 			expectedStatus: fiber.StatusUnauthorized,
-			expectedBody:   `{"error":"invalid token format"}`,
+			expectedBody:   `{"error":"unauthorized: Missing or invalid authorization header"}`,
 		},
 		{
 			name:           "Invalid token",
 			authHeader:     "Bearer invalid-token",
 			expectedStatus: fiber.StatusUnauthorized,
-			expectedBody:   `{"error":"invalid token"}`,
+			expectedBody:   `{"error":"unauthorized: Invalid or expired token"}`,
 		},
 		{
 			name:           "Valid token",

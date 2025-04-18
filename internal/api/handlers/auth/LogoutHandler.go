@@ -19,10 +19,27 @@ import (
 // @Router /api/auth/logout [get]
 // @Security ApiKeyAuth
 func LogoutHandler(c *fiber.Ctx) error {
-	// Get token from context (already validated by middleware)
+	// First try to get token from context (set by middleware)
 	token, ok := middleware.GetToken(c)
+	
+	// If not found in context, try to get it from the Authorization header (for backward compatibility)
 	if !ok {
-		return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("no token found in context"))
+		// get the token from the Authorization Bearer header
+		authHeader := c.Get("Authorization")
+		if authHeader == "" {
+			return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("no token provided"))
+		}
+		if len(authHeader) < 7 {
+			return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("invalid token format"))
+		}
+		// remove the "Bearer " prefix
+		token = authHeader[7:]
+		
+		// check if the token is valid
+		valid, err := sessionManager.Instance.ValidateSession(token)
+		if err != nil || !valid {
+			return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("invalid token"))
+		}
 	}
 	
 	// Remove the token from the session
