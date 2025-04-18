@@ -1,8 +1,10 @@
 package main
 
 import (
+	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/tot0p/env"
+	_ "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/docs/feed-pulse"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models"
@@ -12,6 +14,14 @@ import (
 	"time"
 )
 
+// @title Feed Pulse API
+// @version 1.0
+// @description This is the API documentation for the Feed Pulse application.
+// @termsOfService http://swagger.io/terms/
+
+// @host localhost:3000
+// @BasePath /
+// @schemes http
 func main() {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: customErrorHandler,
@@ -42,6 +52,7 @@ func main() {
 	sessionManager.InitSessionManager(env.Get("SECRET_KEY"), 3*time.Hour)
 
 	api.SetupRoutes(app)
+	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	log.Printf("Starting server on localhost:3000\n")
 	log.Fatal(app.Listen(":3000"))

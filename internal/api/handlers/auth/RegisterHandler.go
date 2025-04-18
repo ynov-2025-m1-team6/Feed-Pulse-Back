@@ -1,12 +1,39 @@
 package auth
 
 import (
+	"errors"
 	"github.com/gofiber/fiber/v2"
-	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/user"
+	userDB "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/user"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/httpUtils"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// UserRepository defines an interface for user repository operations
+type UserRepository interface {
+	GetUserByUsername(username string) (*User.User, error)
+	GetUserByEmail(email string) (*User.User, error)
+	CreateUser(user *User.User) error
+}
+
+// DefaultUserRepository is the default implementation that uses the actual database
+type DefaultUserRepository struct{}
+
+func (r *DefaultUserRepository) GetUserByUsername(username string) (*User.User, error) {
+	return userDB.GetUserByUsername(username)
+}
+
+func (r *DefaultUserRepository) GetUserByEmail(email string) (*User.User, error) {
+	return userDB.GetUserByEmail(email)
+}
+
+func (r *DefaultUserRepository) CreateUser(user *User.User) error {
+	return userDB.CreateUser(user)
+}
+
+// Default repository instance
+var defaultUserRepo UserRepository = &DefaultUserRepository{}
 
 type RegisterUser struct {
 	Username string `json:"username" validate:"required"`
@@ -14,41 +41,46 @@ type RegisterUser struct {
 	Password string `json:"password" validate:"required,min=8,max=50"`
 }
 
+// RegisterHandler godoc
+// @Summary Register a new user
+// @Description Register a new user with username, email and password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body RegisterUser true "User registration data"
+// @Success 201 {object} httpUtils.HTTPMessage "registration successful response"
+// @Failure 400 {object} httpUtils.HTTPError "bad request error"
+// @Failure 409 {object} httpUtils.HTTPError "conflict error - resource already exists"
+// @Failure 500 {object} httpUtils.HTTPError "internal server error"
+// @Router /api/auth/register [post]
 func RegisterHandler(c *fiber.Ctx) error {
+	return RegisterHandlerWithRepo(c, defaultUserRepo)
+}
+
+// RegisterHandlerWithRepo is the testable version of RegisterHandler that accepts a repository
+func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 	// Parse the request body into the RegisterUser struct
 	var registerUser RegisterUser
 	if err := c.BodyParser(&registerUser); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request payload",
-		})
+		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("invalid request payload"))
 	}
 	// Validate the request payload
 	if registerUser.Username == "" || registerUser.Email == "" || registerUser.Password == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Username, email, and password are required",
-		})
+		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("username, email, and password are required"))
 	}
 	if len(registerUser.Password) < 8 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Password must be at least 8 characters long",
-		})
+		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("password must be at least 8 characters long"))
 	}
 	if len(registerUser.Password) > 50 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Password must be at most 50 characters long",
-		})
+		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("password must be at most 50 characters long"))
 	}
 	if !utils.IsValidEmail(registerUser.Email) {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid email format",
-		})
+		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("invalid email format"))
 	}
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerUser.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to hash password",
-		})
+		return httpUtils.NewError(c, fiber.StatusInternalServerError, errors.New("failed to hash password"))
 	}
 	// Create a new registerUser object
 	newUser := &User.User{
@@ -57,30 +89,22 @@ func RegisterHandler(c *fiber.Ctx) error {
 		Password: string(hashedPassword),
 	}
 	// get the user by username
-	existingUser, err := user.GetUserByUsername(newUser.Username)
+	existingUser, err := repo.GetUserByUsername(newUser.Username)
 	if err == nil && existingUser != nil {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Username already exists",
-		})
+		return httpUtils.NewError(c, fiber.StatusConflict, errors.New("username already exists"))
 	}
 	// get the user by email
-	existingUser, err = user.GetUserByEmail(newUser.Email)
+	existingUser, err = repo.GetUserByEmail(newUser.Email)
 	if err == nil && existingUser != nil {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Email already exists",
-		})
+		return httpUtils.NewError(c, fiber.StatusConflict, errors.New("email already exists"))
 	}
 
 	// Save the registerUser to the database
-	err = user.CreateUser(newUser)
+	err = repo.CreateUser(newUser)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create user",
-		})
+		return httpUtils.NewError(c, fiber.StatusInternalServerError, errors.New("failed to create user"))
 	}
 
 	// Return a success response
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "User registered successfully",
-	})
+	return httpUtils.NewMessage(c, fiber.StatusCreated, "user registered successfully")
 }
