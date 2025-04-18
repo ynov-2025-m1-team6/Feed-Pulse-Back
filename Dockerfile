@@ -12,6 +12,8 @@ COPY . .
 
 RUN go mod download
 
+RUN go run github.com/swaggo/swag/cmd/swag@latest init -g main.go --output docs/feed-pulse --dir ./cmd/app,./internal/api/handlers,./internal/utils
+
 RUN go build -o /app/app ./cmd/app/main.go
 
 FROM debian:bookworm-slim
@@ -23,10 +25,10 @@ ENV LANG=C.UTF-8
 WORKDIR /app
 
 COPY --from=buildergo /app/app .
+COPY --from=buildergo /app/docs/swagger.json ./docs/swagger.json
+COPY --from=buildergo /app/docs/swagger.yaml ./docs/swagger.yaml
 
 ENV PORT=8080
 EXPOSE 8080
-
-
 
 CMD ["/app/app"]
