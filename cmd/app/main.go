@@ -60,7 +60,7 @@ func main() {
 		port = "3000"
 	}
 
-	log.Printf("Starting server on localhost:" + port + "\n")
+	log.Printf("Starting server on localhost: %s \n", port)
 	log.Fatal(app.Listen(":" + port))
 }
 
