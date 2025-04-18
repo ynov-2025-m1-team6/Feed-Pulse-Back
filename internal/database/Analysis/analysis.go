@@ -2,6 +2,7 @@ package Analysis
 
 import (
 	"errors"
+
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
@@ -116,7 +117,7 @@ func DeleteAnalysis(id int) error {
 }
 
 // GetAnalysisByFeedbackID returns an analysis by feedback ID
-func GetAnalysisByFeedbackID(feedbackID string) (Analysis.CleanAnalysis, error) {
+func GetAnalysisByFeedbackID(feedbackID int) (Analysis.CleanAnalysis, error) {
 	var analysis Analysis.Analysis
 	result := database.DB.Where("feedback_id = ?", feedbackID).First(&analysis)
 	if result.Error != nil {
