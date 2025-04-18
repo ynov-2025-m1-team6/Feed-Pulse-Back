@@ -3,6 +3,7 @@ package Feedback
 import (
 	"errors"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
 	"gorm.io/gorm"
 )
@@ -57,7 +58,7 @@ func UpdateFeedback(feedback Feedback.Feedback) (Feedback.Feedback, error) {
 	return feedback, nil
 }
 
-// DeleteFeedback delete a feedback by its ID
+// DeleteFeedback delete a feedback by its ID and its associated analyses
 func DeleteFeedback(id int) error {
 	var feedback Feedback.Feedback
 	result := database.DB.Where("id = ?", id).First(&feedback)
@@ -68,11 +69,23 @@ func DeleteFeedback(id int) error {
 		return result.Error
 	}
 
-	result = database.DB.Delete(&feedback)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
+	// Delete associated analyses first
+	// We use a transaction to ensure atomicity
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		// Delete all analyses related to this feedback
+		if err := tx.Where("feedback_id = ?", id).Delete(&Analysis.Analysis{}).Error; err != nil {
+			return err
+		}
+
+		// Delete the feedback itself
+		if err := tx.Delete(&feedback).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 // GetFeedbacksByChannel returns feedbacks by channel
@@ -84,3 +97,4 @@ func GetFeedbacksByChannel(channel string) ([]Feedback.Feedback, error) {
 	}
 	return feedbacks, nil
 }
+
