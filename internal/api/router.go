@@ -32,5 +32,4 @@ func SetupRoutes(app *fiber.App) {
 	authGrp.Post("/login", auth.LoginHandler)
 	authGrp.Post("/register", auth.RegisterHandler)
 	authGrp.Get("/logout", auth.LogoutHandler)
-
 }
