@@ -52,19 +52,21 @@ func TestGetAllFeedbacks(t *testing.T) {
 			Date:      testDate,
 			Channel:   "email",
 			Text:      "Test feedback 1",
+			BoardID:   1,
 		},
 		{
 			BaseModel: BaseModel.BaseModel{Id: 2},
 			Date:      testDate,
 			Channel:   "web",
 			Text:      "Test feedback 2",
+			BoardID:   2,
 		},
 	}
 
 	// Setup expectations
-	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text"})
+	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id"})
 	for _, f := range testFeedbacks {
-		rows.AddRow(f.Id, f.CreatedAt, f.UpdatedAt, f.Date, f.Channel, f.Text)
+		rows.AddRow(f.Id, f.CreatedAt, f.UpdatedAt, f.Date, f.Channel, f.Text, f.BoardID)
 	}
 
 	// Match any SELECT query
@@ -84,6 +86,8 @@ func TestGetAllFeedbacks(t *testing.T) {
 		assert.Equal(t, testFeedbacks[1].Channel, feedbacks[1].Channel)
 		assert.Equal(t, testFeedbacks[0].Text, feedbacks[0].Text)
 		assert.Equal(t, testFeedbacks[1].Text, feedbacks[1].Text)
+		assert.Equal(t, testFeedbacks[0].BoardID, feedbacks[0].BoardID)
+		assert.Equal(t, testFeedbacks[1].BoardID, feedbacks[1].BoardID)
 	}
 
 	// Test with database error
@@ -154,12 +158,22 @@ func TestCreateFeedback(t *testing.T) {
 		Date:    testDate,
 		Channel: "email",
 		Text:    "Test feedback",
+		BoardID: 1,
 	}
+
+	// Setup expectations for checking if board exists
+	boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+		AddRow(1, time.Now(), time.Now(), "Test Board 1")
+
+	// The CreateFeedback function first checks if the board exists with the BoardID
+	mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+		WithArgs(1, 1).
+		WillReturnRows(boardRows)
 
 	// Setup expectations for the create operation
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "feedbacks"`).
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), testDate, "email", "Test feedback").
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), testDate, "email", "Test feedback", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
@@ -170,11 +184,12 @@ func TestCreateFeedback(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, testFeedback.Channel, createdFeedback.Channel)
 	assert.Equal(t, testFeedback.Text, createdFeedback.Text)
+	assert.Equal(t, testFeedback.BoardID, createdFeedback.BoardID)
 
 	// Test with database error
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "feedbacks"`).
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), testDate, "email", "Test feedback").
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), testDate, "email", "Test feedback", 1).
 		WillReturnError(errors.New("database error"))
 	mock.ExpectRollback()
 
