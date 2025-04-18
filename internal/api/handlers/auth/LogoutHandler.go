@@ -1,36 +1,50 @@
 package auth
 
 import (
+	"errors"
 	"github.com/gofiber/fiber/v2"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/sessionManager"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/httpUtils"
 )
 
+// LogoutHandler godoc
+// @Summary Logout a user
+// @Description Logout a user by invalidating their session token
+// @Tags Auth
+// @Accept */*
+// @Produce json
+// @Success 200 {object} httpUtils.HTTPMessage "user successfully logged out"
+// @Failure 401 {object} httpUtils.HTTPError "authentication error"
+// @Router /api/auth/logout [get]
+// @Security ApiKeyAuth
 func LogoutHandler(c *fiber.Ctx) error {
-	// get the token from the Authorization Bearer header
-	token := c.Get("Authorization")
-	if token == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "No token provided",
-		})
+	// First try to get token from context (set by middleware)
+	token, ok := middleware.GetToken(c)
+	
+	// If not found in context, try to get it from the Authorization header (for backward compatibility)
+	if !ok {
+		// get the token from the Authorization Bearer header
+		authHeader := c.Get("Authorization")
+		if authHeader == "" {
+			return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("no token provided"))
+		}
+		if len(authHeader) < 7 {
+			return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("invalid token format"))
+		}
+		// remove the "Bearer " prefix
+		token = authHeader[7:]
+		
+		// check if the token is valid
+		valid, err := sessionManager.Instance.ValidateSession(token)
+		if err != nil || !valid {
+			return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("invalid token"))
+		}
 	}
-	if len(token) < 7 {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid token format",
-		})
-	}
-	// remove the "Bearer " prefix
-	token = token[7:]
-	// check if the token is valid
-	valid, err := sessionManager.Instance.ValidateSession(token)
-	if err != nil || !valid {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid token",
-		})
-	}
-	// remove the token from the session
+	
+	// Remove the token from the session
 	sessionManager.Instance.DeleteSession(token)
-	// return a success message
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Logged out successfully",
-	})
+	
+	// Return a success message
+	return httpUtils.NewMessage(c, fiber.StatusOK, "logged out successfully")
 }
