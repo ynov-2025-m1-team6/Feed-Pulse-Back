@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers/Feedback"
 )
 
@@ -16,12 +17,25 @@ func SetupRoutes(app *fiber.App) {
 
 	app.Get("/ping", handlers.PingHandler)
 
+	api := app.Group("/api")
+
 	// Feedback routes
-	feedbacks := app.Group("/feedbacks")
+	feedbacks := api.Group("/feedbacks")
 	feedbacks.Get("/", Feedback.GetAllFeedbacksHandler)
 	feedbacks.Get("/:id", Feedback.GetFeedbackByIDHandler)
 	feedbacks.Post("/", Feedback.CreateFeedbackHandler)
 	feedbacks.Put("/:id", Feedback.UpdateFeedbackHandler)
 	feedbacks.Delete("/:id", Feedback.DeleteFeedbackHandler)
 	feedbacks.Get("/channel/:channel", Feedback.GetFeedbacksByChannelHandler)
+
+	// Analysis routes
+	analyses := api.Group("/analyses")
+	analyses.Get("/", Analysis.GetAllAnalysesHandler)
+	analyses.Get("/:id", Analysis.GetAnalysisByIDHandler)
+	analyses.Post("/", Analysis.AddAnalysisHandler)
+	analyses.Put("/:id", Analysis.UpdateAnalysisHandler)
+	analyses.Delete("/:id", Analysis.DeleteAnalysisHandler)
+	analyses.Get("/feedback/:feedback_id", Analysis.GetAnalysisByFeedbackIDHandler)
+	analyses.Get("/topic/:topic", Analysis.GetAnalysesByTopicHandler)
+	analyses.Get("/sentiment", Analysis.GetAnalysesBySentimentRangeHandler)
 }

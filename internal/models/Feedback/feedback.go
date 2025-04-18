@@ -7,8 +7,7 @@ import (
 
 type Feedback struct {
 	BaseModel.BaseModel
-	FeedbackID string    `json:"feedback_id" gorm:"not null;unique"`
-	Date       time.Time `json:"date" gorm:"not null"`
-	Channel    string    `json:"channel" gorm:"not null"`
-	Text       string    `json:"text" gorm:"not null"`
+	Date    time.Time `json:"date" gorm:"not null"`
+	Channel string    `json:"channel" gorm:"not null"`
+	Text    string    `json:"text" gorm:"not null"`
 }
