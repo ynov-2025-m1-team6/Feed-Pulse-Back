@@ -1,6 +1,10 @@
 package main
 
 import (
+	"log"
+	"os"
+	"time"
+
 	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/tot0p/env"
@@ -9,9 +13,6 @@ import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/sessionManager"
-	"log"
-	"os"
-	"time"
 )
 
 // @title Feed Pulse API
@@ -54,8 +55,13 @@ func main() {
 	api.SetupRoutes(app)
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
-	log.Printf("Starting server on localhost:3000\n")
-	log.Fatal(app.Listen(":3000"))
+	port := env.Get("PORT")
+	if port == "" {
+		port = "3000"
+	}
+
+	log.Printf("Starting server on localhost:" + port + "\n")
+	log.Fatal(app.Listen(":" + port))
 }
 
 // customErrorHandler provides better error responses
