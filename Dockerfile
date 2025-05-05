@@ -12,7 +12,7 @@ COPY . .
 
 RUN go mod download
 
-RUN go run github.com/swaggo/swag/cmd/swag@latest init -g main.go --output docs/feed-pulse --dir ./cmd/app,./internal/api/handlers,./internal/utils
+RUN go run github.com/swaggo/swag/cmd/swag@latest init -g main.go --output docs/feed-pulse --dir ./cmd/app,./internal/api/handlers,./internal
 
 RUN go build -o /app/app ./cmd/app/main.go
 
