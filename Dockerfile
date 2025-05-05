@@ -20,6 +20,8 @@ FROM debian:bookworm-slim
 LABEL authors="tot0p"
 
 
+RUN apt update && apt install -y ca-certificates
+
 ENV LANG=C.UTF-8
 
 WORKDIR /app
