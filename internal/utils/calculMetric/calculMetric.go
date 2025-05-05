@@ -3,13 +3,22 @@ package calculmetric
 import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
-	metric "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Metric"
+	metricImport "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Metric"
 )
 
-func CalculMetric(feedbacks []Feedback.Feedback) (metric.Metric, error) {
+func CalculMetric(feedbacks []Feedback.Feedback) (metricImport.Metric, error) {
 
-	// Initialize the metric struct
-	var metric metric.Metric
+	// Initialize the metricImport struct
+	var metric = metricImport.Metric{
+		DistributionByChannel: make(map[string]float64),
+		DistributionByTopic:   make(map[string]float64),
+		VolumetryByDay:        make(map[string]float64),
+		Sentiment: metricImport.Sentiment{
+			Positive: 0,
+			Neutral:  0,
+			Negative: 0,
+		},
+	}
 
 	// Check if feedbacks is empty
 	if len(feedbacks) == 0 {
@@ -31,6 +40,12 @@ func CalculMetric(feedbacks []Feedback.Feedback) (metric.Metric, error) {
 
 	// Calculate the average sentiment
 	metric.AverageSentiment = CalculAverageSentiment(feedbacks)
+
+	// Calculate the sentiment percentage
+	metric.Sentiment = CalculateSentimentPercentage(feedbacks)
+
+	// Calculate the percentage of sentiment under threshold
+	metric.PercentageSentimentUnderTreshold = CalculatePercentageSentimentUnderThreshold(feedbacks, -0.5)
 
 	return metric, nil
 }
@@ -116,4 +131,52 @@ func CalculAverageSentiment(feedbacks []Feedback.Feedback) float64 {
 	averageSentiment := totalSentiment / float64(len(feedbacks))
 
 	return averageSentiment
+}
+
+func CalculateSentimentPercentage(feedbacks []Feedback.Feedback) metricImport.Sentiment {
+	// Initialize the sentiment counts
+	var positiveCount, neutralCount, negativeCount int
+
+	// Iterate over feedbacks and count the sentiment types
+	for _, feedback := range feedbacks {
+		analysis, err := Analysis.GetAnalysisByFeedbackID(feedback.Id)
+		if err != nil {
+			continue // Handle error appropriately
+		}
+		if analysis.SentimentScore > 0 {
+			positiveCount++
+		} else if analysis.SentimentScore == 0 {
+			neutralCount++
+		} else {
+			negativeCount++
+		}
+	}
+
+	totalFeedbacks := float64(len(feedbacks))
+
+	return metricImport.Sentiment{
+		Positive: (float64(positiveCount) / totalFeedbacks) * 100,
+		Neutral:  (float64(neutralCount) / totalFeedbacks) * 100,
+		Negative: (float64(negativeCount) / totalFeedbacks) * 100,
+	}
+}
+
+func CalculatePercentageSentimentUnderThreshold(feedbacks []Feedback.Feedback, threshold float64) float64 {
+	// Initialize the count of feedbacks under the threshold
+	var countUnderThreshold int
+
+	// Iterate over feedbacks and count the ones under the threshold
+	for _, feedback := range feedbacks {
+		analysis, err := Analysis.GetAnalysisByFeedbackID(feedback.Id)
+		if err != nil {
+			continue // Handle error appropriately
+		}
+		if analysis.SentimentScore < threshold {
+			countUnderThreshold++
+		}
+	}
+
+	totalFeedbacks := float64(len(feedbacks))
+
+	return (float64(countUnderThreshold) / totalFeedbacks) * 100
 }
