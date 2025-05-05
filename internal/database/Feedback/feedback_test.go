@@ -155,10 +155,7 @@ func TestCreateFeedback(t *testing.T) {
 	}
 
 	//init the mixtral client
-	err = env.LoadPath("../../../.env")
-	if err != nil {
-		t.Fatalf("Error loading env: %v", err)
-	}
+	_ = env.LoadPath("../../../.env")
 	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"))
 
 	// Define test data
