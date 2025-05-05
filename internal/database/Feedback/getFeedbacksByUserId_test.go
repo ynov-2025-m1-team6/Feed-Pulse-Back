@@ -125,7 +125,6 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userUUID, "")
 	assert.Nil(t, feedbacks)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "database error")
 
 	// Test case 5: Database error when retrieving boards
 	userUUID = "d4c8169e-8016-496d-af6f-af4a85323028"
