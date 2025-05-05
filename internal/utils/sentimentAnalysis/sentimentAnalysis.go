@@ -2,7 +2,6 @@ package sentimentAnalysis
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gage-technologies/mistral-go"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
@@ -36,7 +35,6 @@ func SentimentAnalysis(feedback Feedback.Feedback) (Analysis.Analysis, error) {
 	var analysis Analysis.Analysis
 	//remove the ```json from the start and ``` from the end
 	jsonOutput := chatRes.Choices[0].Message.Content
-	fmt.Println(jsonOutput)
 	err = json.Unmarshal([]byte(jsonOutput), &analysis)
 	if err != nil {
 		return Analysis.Analysis{}, err
