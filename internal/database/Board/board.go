@@ -158,3 +158,19 @@ func GetBoardsByUserID(userId int) ([]Board.Board, error) {
 
 	return boards, nil
 }
+
+func GetBoardsByUserUUID(userUUID string) ([]Board.Board, error) {
+	var boards []Board.Board
+
+	// Using joins to get boards that are associated with the user through the user_boards junction table
+	result := database.DB.Joins("JOIN user_boards ON boards.id = user_boards.board_id").
+		Joins("JOIN users ON user_boards.user_id = users.id").
+		Where("users.uuid = ?", userUUID).
+		Find(&boards)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return boards, nil
+}

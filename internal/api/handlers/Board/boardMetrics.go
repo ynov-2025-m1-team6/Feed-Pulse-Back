@@ -6,19 +6,33 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Board"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
 	boardModel "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Board"
 	calculmetric "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/calculMetric"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/httpUtils"
 	"gorm.io/gorm"
 )
 
 func BoardMetricsHandler(c *fiber.Ctx) error {
 	// Get board ID from query parameter - default to 1 if not provided
-	boardID, err := c.ParamsInt("board_id")
+	userUUID, ok := middleware.GetUserUUID(c)
+	if !ok {
+		return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("unauthorized: user not found in context"))
+	}
+
+	// Get user information from database
+	userBoard, err := Board.GetBoardsByUserUUID(userUUID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid board ID",
+			"error": "Invalid board",
 		})
 	}
+	if len(userBoard) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "No boards found for this user",
+		})
+	}
+	boardID := userBoard[0].Id
 
 	// Check if the board exists in the database before proceeding
 	if err := validateBoardExists(boardID); err != nil {
