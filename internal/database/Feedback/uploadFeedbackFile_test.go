@@ -18,7 +18,7 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 
 	//init the mixtral client
 	_ = env.LoadPath("../../../.env")
-	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"))
+	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"), env.Get("EMAIL_PASSWORD"))
 
 	// Test successful upload of feedbacks
 	t.Run("Successfully upload and save multiple feedbacks", func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute the function being tested
-		successCount, errs, err := UploadFeedbacksFromFile(testFeedbacks)
+		successCount, errs, err := UploadFeedbacksFromFile(testFeedbacks, "dummyemail@example.com")
 
 		// Assert results
 		assert.Nil(t, err)
@@ -165,7 +165,7 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 		mock.ExpectRollback()
 
 		// Execute the function being tested
-		successCount, dbErrors, err := UploadFeedbacksFromFile(testFeedbacks)
+		successCount, dbErrors, err := UploadFeedbacksFromFile(testFeedbacks, "dummyemail@example.com")
 
 		// Assert results
 		assert.Nil(t, err)
@@ -184,7 +184,7 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 		var testFeedbacks []Feedback.Feedback
 
 		// Execute the function being tested
-		successCount, dbErrors, err := UploadFeedbacksFromFile(testFeedbacks)
+		successCount, dbErrors, err := UploadFeedbacksFromFile(testFeedbacks, "dummyemail@example.com")
 
 		// Assert results
 		assert.Nil(t, err)

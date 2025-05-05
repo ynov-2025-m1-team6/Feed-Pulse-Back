@@ -15,7 +15,7 @@ import (
 //   - int: count of successfully saved feedbacks
 //   - []string: list of error messages that occurred during processing
 //   - error: any critical error that prevented the overall operation
-func UploadFeedbacksFromFile(feedbacks []feedbackModel.Feedback) (int, []string, error) {
+func UploadFeedbacksFromFile(feedbacks []feedbackModel.Feedback, userEmail string) (int, []string, error) {
 	successCount := 0
 	errorMessages := make([]string, 0)
 
@@ -55,7 +55,7 @@ func UploadFeedbacksFromFile(feedbacks []feedbackModel.Feedback) (int, []string,
 		}
 
 		// Create the feedback
-		_, err := CreateFeedback(feedback)
+		_, err := CreateFeedback(feedback, userEmail)
 		if err != nil {
 			errorMsg := fmt.Sprintf("Feedback #%d: %s", i+1, err.Error())
 			errorMessages = append(errorMessages, errorMsg)

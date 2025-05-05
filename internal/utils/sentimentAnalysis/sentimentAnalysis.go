@@ -6,15 +6,18 @@ import (
 	"github.com/gage-technologies/mistral-go"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
+	gomail "gopkg.in/mail.v2"
 )
 
 var client *mistral.MistralClient
+var dialer *gomail.Dialer
 
-func InitSentimentAnalysis(apiKey string) {
+func InitSentimentAnalysis(apiKey string, emailPass string) {
 	client = mistral.NewMistralClientDefault(apiKey)
+	dialer = gomail.NewDialer("mail.lucamorgado.com", 465, "noreply-feedpulse@lucamorgado.com", emailPass)
 }
 
-func SentimentAnalysis(feedback Feedback.Feedback) (Analysis.Analysis, error) {
+func SentimentAnalysis(feedback Feedback.Feedback, userEmail string) (Analysis.Analysis, error) {
 	// Example: Using Chat Completions
 	maxRetries := 5
 	retryCount := 0
@@ -56,5 +59,19 @@ func SentimentAnalysis(feedback Feedback.Feedback) (Analysis.Analysis, error) {
 		return Analysis.Analysis{}, err
 	}
 	analysis.FeedbackID = feedback.Id
+	// if the score is below -0,5 send an email
+	if analysis.SentimentScore <= -0.5 {
+		// Send an email to the user
+		m := gomail.NewMessage()
+		m.SetHeader("From", "noreply-feedpulse@lucamorgado.com")
+		m.SetHeader("To", userEmail)
+		m.SetHeader("Subject", "Negative Feedback Alert")
+		m.SetBody("text/plain", fmt.Sprintf("Dear User,\n\nWe noticed that one of your submitted feedback has a negative sentiment score of %.2f.\n\nFeedback: %s\n\nPlease take a moment to review it.\n\nBest regards,\nFeedPulse Team", analysis.SentimentScore, feedback.Text))
+
+		// Send the email
+		if err := dialer.DialAndSend(m); err != nil {
+			fmt.Printf("Failed to send email: %v\n", err)
+		}
+	}
 	return analysis, nil
 }
