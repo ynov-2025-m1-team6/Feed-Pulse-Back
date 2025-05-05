@@ -185,7 +185,6 @@ func TestCreateFeedback(t *testing.T) {
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id"}).
 			AddRow(1, time.Now(), time.Now(), testDate, "email", "The application is great!", 1))
-	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "analyses"`).
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))

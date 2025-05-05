@@ -173,7 +173,7 @@ func TestAddAnalysis(t *testing.T) {
 	mock.ExpectCommit()
 
 	// Call the function we're testing
-	createdAnalysis, err := AddAnalysis(testAnalysis)
+	createdAnalysis, err := AddAnalysis(testAnalysis, database.DB)
 
 	// Assert expectations
 	assert.Nil(t, err)
@@ -186,7 +186,7 @@ func TestAddAnalysis(t *testing.T) {
 		WithArgs(1, 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
-	_, err = AddAnalysis(testAnalysis)
+	_, err = AddAnalysis(testAnalysis, database.DB)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "feedback not found")
 
@@ -201,7 +201,7 @@ func TestAddAnalysis(t *testing.T) {
 		WillReturnError(errors.New("database error"))
 	mock.ExpectRollback()
 
-	_, err = AddAnalysis(testAnalysis)
+	_, err = AddAnalysis(testAnalysis, database.DB)
 	assert.NotNil(t, err)
 }
 

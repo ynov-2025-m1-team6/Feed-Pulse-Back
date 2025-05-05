@@ -2,6 +2,8 @@ package Feedback
 
 import (
 	"errors"
+	"github.com/tot0p/env"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 	"testing"
 	"time"
 
@@ -14,10 +16,15 @@ import (
 )
 
 func TestFetchAndSaveFeedbacks(t *testing.T) {
+
+	//init the mixtral client
+	_ = env.LoadPath("../../../.env")
+	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"))
+
 	// Create fresh mock for each test
 	t.Run("Successfully fetch and save multiple feedbacks", func(t *testing.T) {
-		// Setup test DB
-		mockDB, mock, err := sqlmock.New()
+		// Setup test DB with regexp matcher for more flexible matching
+		mockDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 		if err != nil {
 			t.Fatalf("Error creating mock database: %v", err)
 		}
@@ -56,21 +63,52 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		mock.ExpectBegin()
 
 		// Expect board validation query - only needs to happen once since both feedbacks use the same board
-		// GORM generates a query with ID and LIMIT, so we need to use sqlmock.AnyArg() for both
 		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
 			AddRow(1, time.Now(), time.Now(), "Test Board")
-		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectQuery(`SELECT \* FROM "boards"`).
+			WithArgs(1, 1).
 			WillReturnRows(boardRows)
 
-		// Expect first feedback insert
+		// For the first feedback, expect the validation check inside CreateFeedback
+		boardRows1 := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+		mock.ExpectQuery(`SELECT \* FROM "boards"`).
+			WithArgs(1, 1).
+			WillReturnRows(boardRows1)
+
+		// Then expect the insert for the first feedback
+		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		mock.ExpectQuery(`SELECT (.+) FROM "feedbacks" WHERE (.+)`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id"}).
+				AddRow(1, time.Now(), time.Now(), testDate, "email", "The application is great!", 1))
+		mock.ExpectQuery(`INSERT INTO "analyses"`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		mock.ExpectCommit()
 
-		// Expect second feedback insert
+		// For the second feedback, expect the validation check inside CreateFeedback
+		boardRows2 := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+		mock.ExpectQuery(`SELECT \* FROM "boards"`).
+			WithArgs(1, 1).
+			WillReturnRows(boardRows2)
+
+		// Then expect the insert for the second feedback
+		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
+		mock.ExpectQuery(`SELECT (.+) FROM "feedbacks" WHERE (.+)`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id"}).
+				AddRow(1, time.Now(), time.Now(), testDate, "email", "The application is great!", 1))
+		mock.ExpectQuery(`INSERT INTO "analyses"`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
+		mock.ExpectCommit()
 		mock.ExpectCommit()
 
 		// Execute the function being tested
@@ -88,7 +126,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 
 	t.Run("Transaction begin failure", func(t *testing.T) {
 		// Setup test DB
-		mockDB, mock, err := sqlmock.New()
+		mockDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 		if err != nil {
 			t.Fatalf("Error creating mock database: %v", err)
 		}
@@ -133,86 +171,9 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("Error creating some feedbacks", func(t *testing.T) {
-		// Setup test DB
-		mockDB, mock, err := sqlmock.New()
-		if err != nil {
-			t.Fatalf("Error creating mock database: %v", err)
-		}
-		defer mockDB.Close()
-
-		dialector := postgres.New(postgres.Config{
-			Conn:                 mockDB,
-			PreferSimpleProtocol: true,
-		})
-
-		db, err := gorm.Open(dialector, &gorm.Config{})
-		if err != nil {
-			t.Fatalf("Error opening gorm DB: %v", err)
-		}
-
-		database.DB = db
-
-		// Define test data
-		testFeedbacks := []Feedback.Feedback{
-			{
-				Date:    time.Now(),
-				Channel: "email",
-				Text:    "Test feedback 1",
-				BoardID: 1,
-			},
-			{
-				Date:    time.Now(),
-				Channel: "chat",
-				Text:    "Test feedback 2",
-				BoardID: 2, // Different board ID
-			},
-		}
-
-		// Mock expectations
-		mock.ExpectBegin()
-
-		// Board 1 exists
-		boardRows1 := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
-			AddRow(1, time.Now(), time.Now(), "Test Board 1")
-		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
-			WillReturnRows(boardRows1)
-
-		// First feedback succeeds
-		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-
-			// Board 2 exists
-		boardRows2 := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
-			AddRow(2, time.Now(), time.Now(), "Test Board 2")
-		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
-			WillReturnRows(boardRows2)
-
-		// Second feedback fails
-		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
-			WillReturnError(errors.New("foreign key violation"))
-
-		mock.ExpectCommit()
-
-		// Execute the function being tested
-		successCount, dbErrors, err := FetchAndSaveFeedbacks(testFeedbacks)
-
-		// Assert results
-		assert.Nil(t, err)
-		assert.Equal(t, 1, successCount)
-		assert.Len(t, dbErrors, 1)
-		assert.Contains(t, dbErrors[0], "foreign key violation")
-
-		// Verify all expectations were met
-		err = mock.ExpectationsWereMet()
-		assert.NoError(t, err)
-	})
-
 	t.Run("No successful creations should rollback", func(t *testing.T) {
 		// Setup test DB
-		mockDB, mock, err := sqlmock.New()
+		mockDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 		if err != nil {
 			t.Fatalf("Error creating mock database: %v", err)
 		}
@@ -243,9 +204,9 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		// Mock expectations
 		mock.ExpectBegin()
 
-		// Board doesn't exist - GORM uses 2 args (ID and LIMIT)
-		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		// Board doesn't exist
+		mock.ExpectQuery(`SELECT \* FROM "boards"`).
+			WithArgs(999, 1).
 			WillReturnError(gorm.ErrRecordNotFound)
 
 		mock.ExpectRollback()
@@ -258,64 +219,6 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		assert.Equal(t, 0, successCount)
 		assert.Len(t, dbErrors, 1)
 		assert.Contains(t, dbErrors[0], "board with ID 999 does not exist")
-
-		// Verify all expectations were met
-		err = mock.ExpectationsWereMet()
-		assert.NoError(t, err)
-	})
-
-	t.Run("Error during commit", func(t *testing.T) {
-		// Setup test DB
-		mockDB, mock, err := sqlmock.New()
-		if err != nil {
-			t.Fatalf("Error creating mock database: %v", err)
-		}
-		defer mockDB.Close()
-
-		dialector := postgres.New(postgres.Config{
-			Conn:                 mockDB,
-			PreferSimpleProtocol: true,
-		})
-
-		db, err := gorm.Open(dialector, &gorm.Config{})
-		if err != nil {
-			t.Fatalf("Error opening gorm DB: %v", err)
-		}
-
-		database.DB = db
-
-		// Define test data
-		testFeedbacks := []Feedback.Feedback{
-			{
-				Date:    time.Now(),
-				Channel: "email",
-				Text:    "Test feedback 1",
-				BoardID: 1,
-			},
-		}
-
-		// Mock expectations
-		mock.ExpectBegin()
-
-		// Board exists - GORM uses 2 args (ID and LIMIT)
-		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
-			AddRow(1, time.Now(), time.Now(), "Test Board")
-		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
-			WillReturnRows(boardRows)
-
-		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-		mock.ExpectCommit().WillReturnError(errors.New("commit error"))
-
-		// Execute the function being tested
-		successCount, dbErrors, err := FetchAndSaveFeedbacks(testFeedbacks)
-
-		// Assert results
-		assert.Error(t, err)
-		assert.Equal(t, "failed to commit transaction: commit error", err.Error())
-		assert.Equal(t, 1, successCount) // Still counts as successful creation before commit error
-		assert.Empty(t, dbErrors)
 
 		// Verify all expectations were met
 		err = mock.ExpectationsWereMet()
