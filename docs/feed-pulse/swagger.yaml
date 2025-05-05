@@ -34,6 +34,11 @@ definitions:
       uuid:
         type: string
     type: object
+  api_handlers_Board.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
   api_handlers_Feedback.ErrorResponse:
     properties:
       error:
@@ -63,6 +68,11 @@ definitions:
     - email
     - password
     - username
+    type: object
+  github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Board.ErrorResponse:
+    properties:
+      error:
+        type: string
     type: object
   github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse:
     properties:
@@ -105,6 +115,36 @@ definitions:
       message:
         example: ok
         type: string
+    type: object
+  metric.Metric:
+    properties:
+      Sentiment:
+        $ref: '#/definitions/metric.Sentiment'
+      averageSentiment:
+        type: number
+      distributionByChannel:
+        additionalProperties:
+          type: number
+        type: object
+      distributionByTopic:
+        additionalProperties:
+          type: number
+        type: object
+      percentageSentimentUnderTreshold:
+        type: number
+      volumetryByDay:
+        additionalProperties:
+          type: number
+        type: object
+    type: object
+  metric.Sentiment:
+    properties:
+      negative:
+        type: number
+      neutral:
+        type: number
+      positive:
+        type: number
     type: object
 host: localhost:3000
 info:
@@ -236,6 +276,33 @@ paths:
       summary: Get user information
       tags:
       - Auth
+  /api/board/metrics:
+    get:
+      consumes:
+      - application/json
+      description: Get metrics for a specific board based on feedback data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Metrics data
+          schema:
+            $ref: '#/definitions/metric.Metric'
+        "400":
+          description: Bad request error
+          schema:
+            $ref: '#/definitions/api_handlers_Board.ErrorResponse'
+        "401":
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/api_handlers_Board.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api_handlers_Board.ErrorResponse'
+      summary: Get board metrics
+      tags:
+      - Board
   /api/feedbacks/analyses:
     get:
       consumes:
@@ -258,15 +325,15 @@ paths:
         "400":
           description: Bad request error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
         "401":
           description: Unauthorized error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
       summary: Get feedbacks for the authenticated user
       tags:
       - Feedback
@@ -292,15 +359,15 @@ paths:
         "400":
           description: Bad request error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
         "401":
           description: Unauthorized error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
       summary: Fetch feedback data from external API
       tags:
       - Feedback
@@ -320,24 +387,22 @@ paths:
       - application/json
       responses:
         "200":
-          description: message=File processed successfully, total=number of feedbacks,
-            success_count=number of successfully processed feedbacks, error_count=number
-            of failed feedbacks, errors=list of errors
+          description: JSONPlaceholder data processed successfully
           schema:
             additionalProperties: true
             type: object
         "400":
           description: Bad request error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
         "401":
           description: Unauthorized error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
       summary: Upload a file containing feedbacks
       tags:
       - Feedback

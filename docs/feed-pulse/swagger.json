@@ -203,6 +203,47 @@
                 }
             }
         },
+        "/api/board/metrics": {
+            "get": {
+                "description": "Get metrics for a specific board based on feedback data",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Board"
+                ],
+                "summary": "Get board metrics",
+                "responses": {
+                    "200": {
+                        "description": "Metrics data",
+                        "schema": {
+                            "$ref": "#/definitions/metric.Metric"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Board.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Board.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Board.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/feedbacks/analyses": {
             "get": {
                 "description": "Retrieves feedbacks with their analyses for the authenticated user",
@@ -237,19 +278,19 @@
                     "400": {
                         "description": "Bad request error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     }
                 }
@@ -287,19 +328,19 @@
                     "400": {
                         "description": "Bad request error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     }
                 }
@@ -329,7 +370,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "message=File processed successfully, total=number of feedbacks, success_count=number of successfully processed feedbacks, error_count=number of failed feedbacks, errors=list of errors",
+                        "description": "JSONPlaceholder data processed successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -338,19 +379,19 @@
                     "400": {
                         "description": "Bad request error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
                         }
                     }
                 }
@@ -433,6 +474,14 @@
                 }
             }
         },
+        "api_handlers_Board.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
         "api_handlers_Feedback.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -473,6 +522,14 @@
                     "minLength": 8
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Board.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
                     "type": "string"
                 }
             }
@@ -536,6 +593,52 @@
                 "message": {
                     "type": "string",
                     "example": "ok"
+                }
+            }
+        },
+        "metric.Metric": {
+            "type": "object",
+            "properties": {
+                "Sentiment": {
+                    "$ref": "#/definitions/metric.Sentiment"
+                },
+                "averageSentiment": {
+                    "type": "number"
+                },
+                "distributionByChannel": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number"
+                    }
+                },
+                "distributionByTopic": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number"
+                    }
+                },
+                "percentageSentimentUnderTreshold": {
+                    "type": "number"
+                },
+                "volumetryByDay": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number"
+                    }
+                }
+            }
+        },
+        "metric.Sentiment": {
+            "type": "object",
+            "properties": {
+                "negative": {
+                    "type": "number"
+                },
+                "neutral": {
+                    "type": "number"
+                },
+                "positive": {
+                    "type": "number"
                 }
             }
         }
