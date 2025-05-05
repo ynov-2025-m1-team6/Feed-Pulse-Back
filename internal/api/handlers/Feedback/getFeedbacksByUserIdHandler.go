@@ -1,6 +1,7 @@
 package Feedback
 
 import (
+	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Feedback"
 )
@@ -21,6 +22,16 @@ func GetFeedbacksByUserIdHandler(c *fiber.Ctx) error {
 
 	feedbacks, err := Feedback.GetFeedbacksWithAnalysesByUserId(userId)
 	if err != nil {
+		if errors.Is(err, Feedback.ErrUserNotFound) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "User not found",
+			})
+		}
+		if errors.Is(err, Feedback.ErrBoardNotFound) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "No boards found for this user",
+			})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})

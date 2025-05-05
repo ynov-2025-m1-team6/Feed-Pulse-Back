@@ -39,7 +39,7 @@ func GetFeedbacksWithAnalysesByUserId(userId int) ([]Feedback.FeedbackWithAnalys
 	}
 
 	var feedbacks []Feedback.FeedbackWithAnalysis
-	for boardId := range boardsId {
+	for _, boardId := range boardsId {
 		var feedbacksForBoard []Feedback.FeedbackWithAnalysis
 		err = database.DB.Table("feedbacks").
 			Select("feedbacks.*, analyses.*").
