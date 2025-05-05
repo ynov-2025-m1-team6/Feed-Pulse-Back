@@ -56,7 +56,7 @@ func CreateFeedback(feedback Feedback.Feedback) (Feedback.Feedback, error) {
 		if err != nil {
 			return err
 		}
-		_, err = Analysis2.AddAnalysis(analysis)
+		_, err = Analysis2.AddAnalysis(analysis, tx)
 		if err != nil {
 			return err
 		}

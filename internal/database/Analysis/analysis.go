@@ -49,10 +49,10 @@ func GetAnalysisByID(id int) (Analysis.CleanAnalysis, error) {
 }
 
 // AddAnalysis adds a new analysis
-func AddAnalysis(analysis Analysis.Analysis) (Analysis.CleanAnalysis, error) {
+func AddAnalysis(analysis Analysis.Analysis, db *gorm.DB) (Analysis.CleanAnalysis, error) {
 	// Check if the referenced feedback exists in the database
 	var feedback Feedback.Feedback
-	result := database.DB.Where("id = ?", analysis.FeedbackID).First(&feedback)
+	result := db.Where("id = ?", analysis.FeedbackID).First(&feedback)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return Analysis.CleanAnalysis{}, errors.New("feedback not found: the referenced feedback_id does not exist")
@@ -61,7 +61,7 @@ func AddAnalysis(analysis Analysis.Analysis) (Analysis.CleanAnalysis, error) {
 	}
 
 	// Create the analysis
-	result = database.DB.Create(&analysis)
+	result = db.Create(&analysis)
 	if result.Error != nil {
 		return Analysis.CleanAnalysis{}, result.Error
 	}
