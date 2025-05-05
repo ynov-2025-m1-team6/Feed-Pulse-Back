@@ -4,6 +4,8 @@
 
 Feed-Pulse-Back is the backend service for the Feed-Pulse project, a web application designed to analyze and visualize feedback data. This service is maked with golang and [fiber](https://gofiber.io/) framework.
 
+> please use existing email when creating a new user, email is used for notification of feedback results.
+
 
 ## Features
 
