@@ -46,6 +46,6 @@ func SetupRoutes(app *fiber.App) {
 	feedbackGrp.Get("/analyses/:user_id", Feedback.GetFeedbacksByUserIdHandler)
 
 	boardGrp := api.Group("/board")
-	boardGrp.Get("/:board_id/metrics", Board.BoardMetricsHandler)
+	boardGrp.Get("/metrics", middleware.AuthRequired(), Board.BoardMetricsHandler)
 
 }
