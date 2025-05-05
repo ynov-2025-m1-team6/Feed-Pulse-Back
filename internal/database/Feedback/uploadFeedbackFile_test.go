@@ -15,8 +15,8 @@ import (
 func TestUploadFeedbacksFromFile(t *testing.T) {
 	// Test successful upload of feedbacks
 	t.Run("Successfully upload and save multiple feedbacks", func(t *testing.T) {
-		// Setup test DB
-		mockDB, mock, err := sqlmock.New()
+		// Setup test DB with regexp matcher for more flexible matching
+		mockDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 		if err != nil {
 			t.Fatalf("Error creating mock database: %v", err)
 		}
@@ -54,20 +54,38 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 		// Mock expectations
 		mock.ExpectBegin()
 
-		// Expect board validation query - only needs to happen once since both feedbacks use the same board
+		// Expect board validation query in the transaction
 		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
 			AddRow(1, time.Now(), time.Now(), "Test Board")
-		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		mock.ExpectQuery(`SELECT \* FROM "boards"`).
+			WithArgs(1, 1).
 			WillReturnRows(boardRows)
 
-		// Expect first feedback insert
+		// For the first feedback, expect validation check inside CreateFeedback
+		boardRowsAgain := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+		mock.ExpectQuery(`SELECT \* FROM "boards"`).
+			WithArgs(1, 1).
+			WillReturnRows(boardRowsAgain)
+
+		// Then expect the insert for the first feedback
+		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		mock.ExpectCommit()
 
-		// Expect second feedback insert
+		// For the second feedback, expect validation check inside CreateFeedback
+		boardRowsAgain2 := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+		mock.ExpectQuery(`SELECT \* FROM "boards"`).
+			WithArgs(1, 1).
+			WillReturnRows(boardRowsAgain2)
+
+		// Then expect the insert for the second feedback
+		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
+		mock.ExpectCommit()
 
 		mock.ExpectCommit()
 
@@ -86,8 +104,8 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 
 	// Test non-existent board
 	t.Run("Board does not exist", func(t *testing.T) {
-		// Setup test DB
-		mockDB, mock, err := sqlmock.New()
+		// Setup test DB with regexp matcher for more flexible matching
+		mockDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 		if err != nil {
 			t.Fatalf("Error creating mock database: %v", err)
 		}
@@ -118,9 +136,9 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 		// Mock expectations
 		mock.ExpectBegin()
 
-		// Board doesn't exist - GORM uses 2 args (ID and LIMIT)
-		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		// Board doesn't exist
+		mock.ExpectQuery(`SELECT \* FROM "boards"`).
+			WithArgs(999, 1).
 			WillReturnError(gorm.ErrRecordNotFound)
 
 		mock.ExpectRollback()
