@@ -2,6 +2,7 @@ package Board
 
 import (
 	"errors"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
 
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Board"
@@ -173,4 +174,26 @@ func GetBoardsByUserUUID(userUUID string) ([]Board.Board, error) {
 	}
 
 	return boards, nil
+}
+
+// AssociateBoardUser associates a user with a board in the junction table
+func AssociateBoardUser(boardID int, userID int) error {
+	// Check if the board exists
+	var board Board.Board
+	if err := database.DB.First(&board, boardID).Error; err != nil {
+		return err
+	}
+
+	// Check if the user exists
+	var user User.User
+	if err := database.DB.First(&user, userID).Error; err != nil {
+		return err
+	}
+
+	// Create the association in the junction table
+	if err := database.DB.Exec("INSERT INTO user_boards (user_id, board_id) VALUES (?, ?)", userID, boardID).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

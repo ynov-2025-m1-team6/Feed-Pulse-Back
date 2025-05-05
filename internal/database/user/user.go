@@ -2,12 +2,26 @@ package user
 
 import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Board"
+	BoardModel "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Board"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
 )
 
 // CreateUser inserts a new user into the database
 func CreateUser(user *User.User) error {
-	return database.DB.Create(user).Error
+	err := database.DB.Create(user).Error
+	if err != nil {
+		return err
+	}
+	boardObj := BoardModel.Board{
+		Name: user.Username + " Board",
+	}
+	board, err := Board.CreateBoard(boardObj)
+	if err != nil {
+		return err
+	}
+
+	return Board.AssociateBoardUser(board.Id, user.Id)
 }
 
 // GetUserByUsername retrieves a user by their username
