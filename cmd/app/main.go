@@ -48,7 +48,7 @@ func main() {
 	}
 
 	// Initialize the session manager
-	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"))
+	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"), env.Get("EMAIL_PASSWORD"))
 
 	// Initialize the SessionManager
 	if env.Get("SECRET_KEY") == "" {

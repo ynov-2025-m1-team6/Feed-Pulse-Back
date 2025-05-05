@@ -51,12 +51,16 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 
 	// Get user ID from userUUID
 	var userId int
-	err := database.DB.Model(&User.User{}).Select("id").Where("uuid = ?", userUUID).Scan(&userId).Error
+	var userEmail string
+	var u User.User
+	err := database.DB.Model(&User.User{}).Where("uuid = ?", userUUID).Select("id, email").Scan(&u).Error
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to retrieve user ID",
 		})
 	}
+	userId = u.Id
+	userEmail = u.Email
 
 	// Get board ID from user ID
 	boards, err := Board.GetBoardsByUserID(userId)
@@ -106,7 +110,7 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 	}
 
 	// Save feedbacks to database
-	successCount, dbErrors, err := feedbackDB.FetchAndSaveFeedbacks(validFeedbacks)
+	successCount, dbErrors, err := feedbackDB.FetchAndSaveFeedbacks(validFeedbacks, userEmail)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Database error: " + err.Error(),

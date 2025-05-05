@@ -156,7 +156,7 @@ func TestCreateFeedback(t *testing.T) {
 
 	//init the mixtral client
 	_ = env.LoadPath("../../../.env")
-	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"))
+	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"), env.Get("EMAIL_PASSWORD"))
 
 	// Define test data
 	testDate := time.Now()
@@ -191,7 +191,7 @@ func TestCreateFeedback(t *testing.T) {
 	mock.ExpectCommit()
 	mock.ExpectCommit()
 	// Call the function we're testing
-	createdFeedback, err := CreateFeedback(testFeedback)
+	createdFeedback, err := CreateFeedback(testFeedback, "dummyemail@example.com")
 
 	// Assert expectations
 	assert.Nil(t, err)
@@ -206,7 +206,7 @@ func TestCreateFeedback(t *testing.T) {
 		WillReturnError(errors.New("database error"))
 	mock.ExpectRollback()
 
-	_, err = CreateFeedback(testFeedback)
+	_, err = CreateFeedback(testFeedback, "dummyemail@example.com")
 	assert.NotNil(t, err)
 }
 
