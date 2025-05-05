@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Board"
-	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
-	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
 	"io"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Board"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
@@ -29,8 +30,18 @@ type Comment struct {
 	Body   string `json:"body"`
 }
 
-// FetchFeedbackHandler connects to JSONPlaceholder API to fetch comment data
-// and converts them to feedback data with random dates and social media channels
+// FetchFeedbackHandler godoc
+// @Summary Fetch feedback data from external API
+// @Description Fetches comment data from JSONPlaceholder API and converts them to feedback data
+// @Tags Feedback
+// @Accept json
+// @Produce json
+// @Param limit query int false "Limit the number of feedbacks to fetch"
+// @Success 200 {object} map[string]interface{} "JSONPlaceholder data processed successfully"
+// @Failure 400 {object} ErrorResponse "Bad request error"
+// @Failure 401 {object} ErrorResponse "Unauthorized error"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /api/feedbacks/fetch [post]
 func FetchFeedbackHandler(c *fiber.Ctx) error {
 	// Default URL is JSONPlaceholder comments API
 	url := "https://jsonplaceholder.typicode.com/comments"
