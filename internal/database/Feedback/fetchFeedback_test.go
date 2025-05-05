@@ -55,7 +55,15 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		// Mock expectations
 		mock.ExpectBegin()
 
-		// Expect first feedback insert - use MatchAnyArgs to avoid argument count issues
+		// Expect board validation query - only needs to happen once since both feedbacks use the same board
+		// GORM generates a query with ID and LIMIT, so we need to use sqlmock.AnyArg() for both
+		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(boardRows)
+
+		// Expect first feedback insert
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
@@ -116,7 +124,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 
 		// Assert results
 		assert.Error(t, err)
-		assert.Equal(t, "transaction begin error", err.Error())
+		assert.Equal(t, "failed to begin transaction: transaction begin error", err.Error())
 		assert.Equal(t, 0, successCount)
 		assert.Empty(t, dbErrors)
 
@@ -157,16 +165,30 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 				Date:    time.Now(),
 				Channel: "chat",
 				Text:    "Test feedback 2",
-				BoardID: 999, // Invalid board ID to trigger error
+				BoardID: 2, // Different board ID
 			},
 		}
 
 		// Mock expectations
 		mock.ExpectBegin()
 
+		// Board 1 exists
+		boardRows1 := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board 1")
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(boardRows1)
+
 		// First feedback succeeds
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+			// Board 2 exists
+		boardRows2 := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(2, time.Now(), time.Now(), "Test Board 2")
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(boardRows2)
 
 		// Second feedback fails
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
@@ -214,14 +236,18 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 				Date:    time.Now(),
 				Channel: "email",
 				Text:    "Test feedback 1",
-				BoardID: 999, // Invalid board ID
+				BoardID: 999, // Board doesn't exist
 			},
 		}
 
 		// Mock expectations
 		mock.ExpectBegin()
-		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
-			WillReturnError(errors.New("foreign key violation"))
+
+		// Board doesn't exist - GORM uses 2 args (ID and LIMIT)
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnError(gorm.ErrRecordNotFound)
+
 		mock.ExpectRollback()
 
 		// Execute the function being tested
@@ -231,7 +257,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 0, successCount)
 		assert.Len(t, dbErrors, 1)
-		assert.Contains(t, dbErrors[0], "foreign key violation")
+		assert.Contains(t, dbErrors[0], "board with ID 999 does not exist")
 
 		// Verify all expectations were met
 		err = mock.ExpectationsWereMet()
@@ -270,6 +296,14 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 
 		// Mock expectations
 		mock.ExpectBegin()
+
+		// Board exists - GORM uses 2 args (ID and LIMIT)
+		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" WHERE`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(boardRows)
+
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectCommit().WillReturnError(errors.New("commit error"))
@@ -279,7 +313,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 
 		// Assert results
 		assert.Error(t, err)
-		assert.Equal(t, "commit error", err.Error())
+		assert.Equal(t, "failed to commit transaction: commit error", err.Error())
 		assert.Equal(t, 1, successCount) // Still counts as successful creation before commit error
 		assert.Empty(t, dbErrors)
 

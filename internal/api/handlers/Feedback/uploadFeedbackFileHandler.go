@@ -2,90 +2,53 @@ package Feedback
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+
 	"github.com/gofiber/fiber/v2"
 	feedbackDB "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Feedback"
 	feedbackModel "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
-	"io"
 )
 
 // UploadFeedbackFileHandler processes a JSON file upload and stores the data in the database
 func UploadFeedbackFileHandler(c *fiber.Ctx) error {
-	// Get uploaded file
-	file, err := c.FormFile("file")
+	// Get board ID from params - default to 1 if not provided
+	boardID, err := c.ParamsInt("board_id", 1)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "No file uploaded or invalid form field",
+			"error": "Invalid board ID",
 		})
 	}
 
-	// Check if it's a JSON file
-	if file.Header.Get("Content-Type") != "application/json" {
+	// Check if the board exists
+	if err := validateBoardExists(boardID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "File must be JSON format",
+			"error": err.Error(),
 		})
 	}
 
-	// Open and read the file
-	uploadedFile, err := file.Open()
+	// Process the uploaded file
+	fileBytes, err := getUploadedFileBytes(c)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to open uploaded file",
-		})
-	}
-	defer uploadedFile.Close()
-
-	fileBytes, err := io.ReadAll(uploadedFile)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to read uploaded file",
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
 		})
 	}
 
-	// Parse the JSON data - try both formats
-	var feedbacksJson []feedbackModel.FeedbackJson
-
-	// First try direct array format
-	err = json.Unmarshal(fileBytes, &feedbacksJson)
+	// Parse the JSON data
+	feedbacksJson, err := parseFeedbackJson(fileBytes)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid JSON format: " + err.Error(),
 		})
 	}
 
+	// Convert to model feedbacks
+	feedbacks := convertJsonToFeedbacks(feedbacksJson, boardID)
+
 	// Validate the feedbacks
-	if len(feedbacksJson) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "No feedback data found in file",
-		})
-	}
-
-	// Cast to Model Feedback
-	feedbacks := make([]feedbackModel.Feedback, len(feedbacksJson))
-	for i, feedback := range feedbacksJson {
-		feedbacks[i] = feedbackModel.Feedback{
-			Date:    feedback.Date,
-			Channel: feedback.Channel,
-			Text:    feedback.Text,
-		}
-	}
-
-	// Validate and prepare feedback data
-	validFeedbacks := make([]feedbackModel.Feedback, 0)
-	preValidationErrors := make([]string, 0)
-
-	for i, feedbackData := range feedbacks {
-		// Validate required fields
-		if feedbackData.Channel == "" || feedbackData.Text == "" {
-			errorMsg := fmt.Sprintf("Feedback #%d missing required fields", i+1)
-			preValidationErrors = append(preValidationErrors, errorMsg)
-			continue
-		}
-
-		validFeedbacks = append(validFeedbacks, feedbackData)
-	}
-
-	// If no valid feedbacks after validation, return error
+	validFeedbacks, preValidationErrors := validateFeedbacks(feedbacks)
 	if len(validFeedbacks) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error":             "No valid feedback data found after validation",
@@ -112,4 +75,79 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 		"error_count":   len(feedbacks) - successCount,
 		"errors":        allErrors,
 	})
+}
+
+// getUploadedFileBytes retrieves and validates the uploaded file, returning its contents
+func getUploadedFileBytes(c *fiber.Ctx) ([]byte, error) {
+	// Get uploaded file
+	file, err := c.FormFile("file")
+	if err != nil {
+		return nil, errors.New("no file uploaded or invalid form field")
+	}
+
+	// Check if it's a JSON file
+	if file.Header.Get("Content-Type") != "application/json" {
+		return nil, errors.New("file must be JSON format")
+	}
+
+	// Open and read the file
+	uploadedFile, err := file.Open()
+	if err != nil {
+		return nil, errors.New("failed to open uploaded file")
+	}
+	defer uploadedFile.Close()
+
+	return io.ReadAll(uploadedFile)
+}
+
+// parseFeedbackJson parses the JSON data into the feedback structure
+func parseFeedbackJson(fileBytes []byte) ([]feedbackModel.FeedbackJson, error) {
+	var feedbacksJson []feedbackModel.FeedbackJson
+
+	err := json.Unmarshal(fileBytes, &feedbacksJson)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate the feedbacks
+	if len(feedbacksJson) == 0 {
+		return nil, errors.New("no feedback data found in file")
+	}
+
+	return feedbacksJson, nil
+}
+
+// convertJsonToFeedbacks converts JSON feedback data to model instances
+func convertJsonToFeedbacks(feedbacksJson []feedbackModel.FeedbackJson, boardID int) []feedbackModel.Feedback {
+	feedbacks := make([]feedbackModel.Feedback, len(feedbacksJson))
+
+	for i, feedback := range feedbacksJson {
+		feedbacks[i] = feedbackModel.Feedback{
+			Date:    feedback.Date,
+			Channel: feedback.Channel,
+			Text:    feedback.Text,
+			BoardID: boardID,
+		}
+	}
+
+	return feedbacks
+}
+
+// validateFeedbacks validates feedback data and returns valid feedbacks and errors
+func validateFeedbacks(feedbacks []feedbackModel.Feedback) ([]feedbackModel.Feedback, []string) {
+	validFeedbacks := make([]feedbackModel.Feedback, 0)
+	validationErrors := make([]string, 0)
+
+	for i, feedbackData := range feedbacks {
+		// Validate required fields
+		if feedbackData.Channel == "" || feedbackData.Text == "" {
+			errorMsg := fmt.Sprintf("Feedback #%d missing required fields", i+1)
+			validationErrors = append(validationErrors, errorMsg)
+			continue
+		}
+
+		validFeedbacks = append(validFeedbacks, feedbackData)
+	}
+
+	return validFeedbacks, validationErrors
 }

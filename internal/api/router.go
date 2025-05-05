@@ -39,6 +39,6 @@ func SetupRoutes(app *fiber.App) {
 
 	// Feedback routes
 	feedbackGrp := api.Group("/feedbacks")
-	feedbackGrp.Post("/upload", Feedback.UploadFeedbackFileHandler)
-	feedbackGrp.Post("/fetch", Feedback.FetchFeedbackHandler)
+	feedbackGrp.Post("/upload/:board_id", Feedback.UploadFeedbackFileHandler)
+	feedbackGrp.Post("/fetch/:board_id", Feedback.FetchFeedbackHandler)
 }
