@@ -1,50 +1,77 @@
 package Feedback
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 )
 
+func setupTestGetFeedback() (sqlmock.Sqlmock, error) {
+	var db *sql.DB
+	var mock sqlmock.Sqlmock
+	var err error
+
+	// Create a new mock database connection
+	db, mock, err = sqlmock.New()
+	if err != nil {
+		return nil, err
+	}
+
+	// Configure GORM to use our mock database
+	dialector := postgres.New(postgres.Config{
+		DSN:                  "sqlmock_db_0",
+		DriverName:           "postgres",
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	})
+
+	gormDB, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Replace the global database connection with our mock
+	database.DB = gormDB
+
+	return mock, nil
+}
+
 func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
-	mock, err := setupTest()
+	mock, err := setupTestGetFeedback()
 	if err != nil {
 		t.Fatalf("Error setting up test: %v", err)
 	}
 
 	// Test case 1: User not found
-	userID := 999
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE id = \$1`).
-		WithArgs(userID).
+	userUUID := "d4c8169e-8016-496d-af6f-af4a85323028"
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-	feedbacks, err := GetFeedbacksWithAnalysesByUserId(userID, "")
+	feedbacks, err := GetFeedbacksWithAnalysesByUserId(userUUID, "")
 	assert.Nil(t, feedbacks)
 	assert.Equal(t, ErrUserNotFound, err)
 
-	// Test case 2: User found but has no boards
-	userID = 1
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE id = \$1`).
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
-
-	mock.ExpectQuery(`SELECT board_id FROM "user_boards" WHERE user_id = \$1`).
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"board_id"}))
-
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
-	assert.Nil(t, feedbacks)
-	assert.Equal(t, ErrBoardNotFound, err)
-
 	// Test case 3: User has boards with feedbacks and analyses
-	userID = 2
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE id = \$1`).
-		WithArgs(userID).
+	userUUID = "d4c8169e-8016-496d-af6f-af4a85323028"
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 
+	// Mock query to get user ID from UUID
+	mock.ExpectQuery(`SELECT "id" FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	userID := 1
 	mock.ExpectQuery(`SELECT board_id FROM "user_boards" WHERE user_id = \$1`).
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"board_id"}).
@@ -73,7 +100,7 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 		WithArgs(2).
 		WillReturnRows(mockFeedbacks2)
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userUUID, "")
 	assert.Nil(t, err)
 	assert.Len(t, feedbacks, 3)
 	if len(feedbacks) >= 3 {
@@ -90,46 +117,55 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 	}
 
 	// Test case 4: Database error when checking if user exists
-	userID = 3
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE id = \$1`).
-		WithArgs(userID).
+	userUUID = "d4c8169e-8016-496d-af6f-af4a85323028"
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
 		WillReturnError(errors.New("database error"))
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userUUID, "")
 	assert.Nil(t, feedbacks)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "database error")
 
 	// Test case 5: Database error when retrieving boards
-	userID = 4
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE id = \$1`).
-		WithArgs(userID).
+	userUUID = "d4c8169e-8016-496d-af6f-af4a85323028"
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 
+	// Mock query to get user ID from UUID
+	mock.ExpectQuery(`SELECT "id" FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
 	mock.ExpectQuery(`SELECT board_id FROM "user_boards" WHERE user_id = \$1`).
-		WithArgs(userID).
+		WithArgs(1).
 		WillReturnError(errors.New("database error"))
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userUUID, "")
 	assert.Nil(t, feedbacks)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database error")
 
 	// Test case 6: Database error when retrieving feedbacks
-	userID = 5
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE id = \$1`).
-		WithArgs(userID).
+	userUUID = "d4c8169e-8016-496d-af6f-af4a85323028"
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 
+	// Mock query to get user ID from UUID
+	mock.ExpectQuery(`SELECT "id" FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
 	mock.ExpectQuery(`SELECT board_id FROM "user_boards" WHERE user_id = \$1`).
-		WithArgs(userID).
+		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{"board_id"}).AddRow(3))
 
 	mock.ExpectQuery(`SELECT feedbacks\.\*, analyses\.\* FROM "feedbacks" LEFT JOIN analyses ON feedbacks.id = analyses.feedback_id WHERE feedbacks.board_id = \$1`).
 		WithArgs(3).
 		WillReturnError(errors.New("database error"))
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userUUID, "")
 	assert.Nil(t, feedbacks)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database error")

@@ -12,14 +12,21 @@ var ErrUserNotFound = errors.New("user not found")
 var ErrBoardNotFound = errors.New("no boards found for this user")
 
 // GetFeedbacksWithAnalysesByUserId retrieves feedbacks with their analyses for a given user ID.
-func GetFeedbacksWithAnalysesByUserId(userId int, channel string) ([]Feedback.FeedbackWithAnalysis, error) {
+func GetFeedbacksWithAnalysesByUserId(userUUID, channel string) ([]Feedback.FeedbackWithAnalysis, error) {
 	// Check if the user exists
 	var userCount int64
-	err := database.DB.Model(&User.User{}).Where("id = ?", userId).Count(&userCount).Error
+	err := database.DB.Model(&User.User{}).Where("uuid = ?", userUUID).Count(&userCount).Error
 	if err != nil {
-		return nil, err
+		return nil, ErrUserNotFound
 	}
 	if userCount == 0 {
+		return nil, ErrUserNotFound
+	}
+
+	// Get the user ID from the UUID
+	var userId int
+	err = database.DB.Model(&User.User{}).Select("id").Where("uuid = ?", userUUID).Scan(&userId).Error
+	if err != nil {
 		return nil, ErrUserNotFound
 	}
 

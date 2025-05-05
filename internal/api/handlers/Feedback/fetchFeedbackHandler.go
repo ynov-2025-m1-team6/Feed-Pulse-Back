@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Board"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
 	"io"
 	"math/rand"
 	"net/http"
@@ -38,13 +41,36 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 	// Social media channels to choose from
 	channels := []string{"twitter", "facebook", "instagram", "web"}
 
-	// Get board ID from query parameter - default to 1 if not provided
-	boardID, err := c.ParamsInt("board_id", 1)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid board ID",
+	// Get user UUID from context
+	userUUID, check := middleware.GetUserUUID(c)
+	if !check {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized: user not found in context",
 		})
 	}
+
+	// Get user ID from userUUID
+	var userId int
+	err := database.DB.Model(&User.User{}).Select("id").Where("uuid = ?", userUUID).Scan(&userId).Error
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve user ID",
+		})
+	}
+
+	// Get board ID from user ID
+	boards, err := Board.GetBoardsByUserID(userId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve boards for user",
+		})
+	}
+	if len(boards) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "No boards found for this user",
+		})
+	}
+	boardID := boards[0].BaseModel.Id
 
 	// Check if the board exists in the database before proceeding
 	if err := validateBoardExists(boardID); err != nil {
