@@ -34,6 +34,7 @@ func SetupRoutes(app *fiber.App) {
 	authGrp := api.Group("/auth")
 	authGrp.Post("/login", auth.LoginHandler)
 	authGrp.Post("/register", auth.RegisterHandler)
+	authGrp.Get("/user", middleware.AuthRequired(), auth.UserInfoHandler)
 
 	// Protected routes (require authentication)
 	authGrp.Get("/logout", middleware.AuthRequired(), auth.LogoutHandler)

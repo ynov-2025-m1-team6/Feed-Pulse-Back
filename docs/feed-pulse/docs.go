@@ -36,7 +36,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LoginUser"
+                            "$ref": "#/definitions/api_handlers_auth.LoginUser"
                         }
                     }
                 ],
@@ -128,7 +128,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RegisterUser"
+                            "$ref": "#/definitions/api_handlers_auth.RegisterUser"
                         }
                     }
                 ],
@@ -147,6 +147,52 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "conflict error - resource already exists",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/user": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the current user's information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get user information",
+                "responses": {
+                    "200": {
+                        "description": "user information",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "authentication error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "user not found error",
                         "schema": {
                             "$ref": "#/definitions/httpUtils.HTTPError"
                         }
@@ -185,7 +231,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "auth.LoginUser": {
+        "api_handlers_auth.LoginUser": {
             "type": "object",
             "required": [
                 "login",
@@ -200,7 +246,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RegisterUser": {
+        "api_handlers_auth.RegisterUser": {
             "type": "object",
             "required": [
                 "email",
@@ -218,6 +264,76 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "api_handlers_auth.UserResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "john@example.com"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john_doe"
+                },
+                "uuid": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.LoginUser": {
+            "type": "object",
+            "required": [
+                "login",
+                "password"
+            ],
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.RegisterUser": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 8
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.UserResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "john@example.com"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john_doe"
+                },
+                "uuid": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 }
             }
         },

@@ -12,7 +12,7 @@ var ErrUserNotFound = errors.New("user not found")
 var ErrBoardNotFound = errors.New("no boards found for this user")
 
 // GetFeedbacksWithAnalysesByUserId retrieves feedbacks with their analyses for a given user ID.
-func GetFeedbacksWithAnalysesByUserId(userId int) ([]Feedback.FeedbackWithAnalysis, error) {
+func GetFeedbacksWithAnalysesByUserId(userId int, channel string) ([]Feedback.FeedbackWithAnalysis, error) {
 	// Check if the user exists
 	var userCount int64
 	err := database.DB.Model(&User.User{}).Where("id = ?", userId).Count(&userCount).Error
@@ -38,6 +38,25 @@ func GetFeedbacksWithAnalysesByUserId(userId int) ([]Feedback.FeedbackWithAnalys
 		return nil, ErrBoardNotFound
 	}
 
+	// If a channel is specified, filter the feedbacks by channel
+	if channel != "" {
+		var feedbacks []Feedback.FeedbackWithAnalysis
+		for _, boardId := range boardsId {
+			var feedbacksForBoard []Feedback.FeedbackWithAnalysis
+			err = database.DB.Table("feedbacks").
+				Select("feedbacks.*, analyses.*").
+				Joins("LEFT JOIN analyses ON feedbacks.id = analyses.feedback_id").
+				Where("feedbacks.board_id = ? AND feedbacks.channel = ?", boardId, channel).
+				Scan(&feedbacksForBoard).Error
+			if err != nil {
+				return nil, err
+			}
+			feedbacks = append(feedbacks, feedbacksForBoard...)
+		}
+		return feedbacks, nil
+	}
+
+	// If no channel is specified, retrieve all feedbacks for the boards
 	var feedbacks []Feedback.FeedbackWithAnalysis
 	for _, boardId := range boardsId {
 		var feedbacksForBoard []Feedback.FeedbackWithAnalysis
