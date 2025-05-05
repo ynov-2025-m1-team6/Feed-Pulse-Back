@@ -19,7 +19,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 
 	//init the mixtral client
 	_ = env.LoadPath("../../../.env")
-	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"))
+	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"), env.Get("EMAIL_PASSWORD"))
 
 	// Create fresh mock for each test
 	t.Run("Successfully fetch and save multiple feedbacks", func(t *testing.T) {
@@ -112,7 +112,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute the function being tested
-		successCount, errs, err := FetchAndSaveFeedbacks(testFeedbacks)
+		successCount, errs, err := FetchAndSaveFeedbacks(testFeedbacks, "dummyemail@example.com")
 
 		// Assert results
 		assert.Nil(t, err)
@@ -158,7 +158,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		mock.ExpectBegin().WillReturnError(errors.New("transaction begin error"))
 
 		// Execute the function being tested
-		successCount, dbErrors, err := FetchAndSaveFeedbacks(testFeedbacks)
+		successCount, dbErrors, err := FetchAndSaveFeedbacks(testFeedbacks, "dummyemail@example.com")
 
 		// Assert results
 		assert.Error(t, err)
@@ -212,7 +212,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		mock.ExpectRollback()
 
 		// Execute the function being tested
-		successCount, dbErrors, err := FetchAndSaveFeedbacks(testFeedbacks)
+		successCount, dbErrors, err := FetchAndSaveFeedbacks(testFeedbacks, "dummyemail@example.com")
 
 		// Assert results
 		assert.Nil(t, err)
@@ -249,7 +249,7 @@ func TestFetchAndSaveFeedbacks(t *testing.T) {
 		var testFeedbacks []Feedback.Feedback
 
 		// Execute the function being tested
-		successCount, dbErrors, err := FetchAndSaveFeedbacks(testFeedbacks)
+		successCount, dbErrors, err := FetchAndSaveFeedbacks(testFeedbacks, "dummyemail@example.com")
 
 		// Assert results
 		assert.Nil(t, err)
