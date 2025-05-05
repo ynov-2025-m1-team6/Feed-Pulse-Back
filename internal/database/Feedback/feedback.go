@@ -35,7 +35,7 @@ func GetFeedbackByID(id int) (Feedback.Feedback, error) {
 }
 
 // CreateFeedback create a new feedback
-func CreateFeedback(feedback Feedback.Feedback) (Feedback.Feedback, error) {
+func CreateFeedback(feedback Feedback.Feedback, userEmail string) (Feedback.Feedback, error) {
 	// Check if the referenced board exists in the database
 	var board Board.Board
 	result := database.DB.Where("id = ?", feedback.BoardID).First(&board)
@@ -52,7 +52,7 @@ func CreateFeedback(feedback Feedback.Feedback) (Feedback.Feedback, error) {
 		if result.Error != nil {
 			return result.Error
 		}
-		analysis, err := sentimentAnalysis.SentimentAnalysis(feedback)
+		analysis, err := sentimentAnalysis.SentimentAnalysis(feedback, userEmail)
 		if err != nil {
 			return err
 		}
