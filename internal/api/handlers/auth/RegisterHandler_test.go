@@ -3,13 +3,14 @@ package auth
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/gofiber/fiber/v2"
-	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
 )
 
 // MockUserRepository implements the UserRepository interface for testing
@@ -19,6 +20,19 @@ type MockUserRepository struct{}
 func (m *MockUserRepository) GetUserByUsername(username string) (*User.User, error) {
 	if username == "existinguser" {
 		return &User.User{
+			UUID:     "existing-uuid",
+			Username: "existinguser",
+			Email:    "existing@example.com",
+		}, nil
+	}
+	return nil, fiber.NewError(fiber.StatusNotFound, "user not found")
+}
+
+// GetUserByUUID implements the UserRepository interface for testing
+func (m *MockUserRepository) GetUserByUUID(uuid string) (*User.User, error) {
+	if uuid == "existing-uuid" {
+		return &User.User{
+			UUID:     "existing-uuid",
 			Username: "existinguser",
 			Email:    "existing@example.com",
 		}, nil
@@ -30,6 +44,7 @@ func (m *MockUserRepository) GetUserByUsername(username string) (*User.User, err
 func (m *MockUserRepository) GetUserByEmail(email string) (*User.User, error) {
 	if email == "existing@example.com" {
 		return &User.User{
+			UUID:     "existing-uuid",
 			Username: "existinguser",
 			Email:    "existing@example.com",
 		}, nil
@@ -45,7 +60,7 @@ func (m *MockUserRepository) CreateUser(user *User.User) error {
 
 func TestRegisterHandler(t *testing.T) {
 	mockRepo := &MockUserRepository{}
-	
+
 	app := fiber.New()
 	app.Post("/api/auth/register", func(c *fiber.Ctx) error {
 		return RegisterHandlerWithRepo(c, mockRepo)
@@ -150,28 +165,28 @@ func TestRegisterHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Convert request body to JSON
 			jsonBody, _ := json.Marshal(tt.requestBody)
-			
+
 			// Create request
 			req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(jsonBody))
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			// Execute request
 			resp, err := app.Test(req)
 			if err != nil {
 				t.Fatalf("Failed to test request: %v", err)
 			}
-			
+
 			// Check status code
 			if resp.StatusCode != tt.expectedStatus {
 				t.Errorf("Expected status code %d, got %d", tt.expectedStatus, resp.StatusCode)
 			}
-			
+
 			// Check response body
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatalf("Failed to read response body: %v", err)
 			}
-			
+
 			if trimmedBody := strings.TrimSpace(string(body)); trimmedBody != tt.expectedBody {
 				t.Errorf("Expected body %s, got %s", tt.expectedBody, trimmedBody)
 			}

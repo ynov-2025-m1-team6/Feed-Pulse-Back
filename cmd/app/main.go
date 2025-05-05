@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 	"log"
 	"os"
 	"time"
@@ -45,6 +46,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize models: %v", err)
 	}
+
+	// Initialize the session manager
+	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"), env.Get("EMAIL_PASSWORD"))
 
 	// Initialize the SessionManager
 	if env.Get("SECRET_KEY") == "" {

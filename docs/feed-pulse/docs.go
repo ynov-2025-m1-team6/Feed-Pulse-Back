@@ -36,7 +36,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LoginUser"
+                            "$ref": "#/definitions/api_handlers_auth.LoginUser"
                         }
                     }
                 ],
@@ -128,7 +128,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RegisterUser"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.RegisterUser"
                         }
                     }
                 ],
@@ -160,6 +160,246 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/auth/user": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the current user's information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get user information",
+                "responses": {
+                    "200": {
+                        "description": "user information",
+                        "schema": {
+                            "$ref": "#/definitions/User.User"
+                        }
+                    },
+                    "401": {
+                        "description": "authentication error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "user not found error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/httpUtils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/board/metrics": {
+            "get": {
+                "description": "Get metrics for a specific board based on feedback data",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Board"
+                ],
+                "summary": "Get board metrics",
+                "responses": {
+                    "200": {
+                        "description": "Metrics data",
+                        "schema": {
+                            "$ref": "#/definitions/metric.Metric"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Board.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Board.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Board.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/feedbacks/analyses": {
+            "get": {
+                "description": "Retrieves feedbacks with their analyses for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feedback"
+                ],
+                "summary": "Get feedbacks for the authenticated user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter feedbacks by channel",
+                        "name": "channel",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of feedbacks with analyses",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Feedback.FeedbackWithAnalysis"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/feedbacks/fetch": {
+            "post": {
+                "description": "Fetches comment data from JSONPlaceholder API and converts them to feedback data",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feedback"
+                ],
+                "summary": "Fetch feedback data from external API",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Limit the number of feedbacks to fetch",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JSONPlaceholder data processed successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/feedbacks/upload": {
+            "post": {
+                "description": "Process a JSON file upload containing feedback data and store it in the database",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feedback"
+                ],
+                "summary": "Upload a file containing feedbacks",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "JSON file containing feedback data",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JSONPlaceholder data processed successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ping": {
             "get": {
                 "description": "Get the status of server",
@@ -185,7 +425,75 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "auth.LoginUser": {
+        "Feedback.FeedbackWithAnalysis": {
+            "type": "object",
+            "properties": {
+                "board_id": {
+                    "type": "integer"
+                },
+                "channel": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "feedback_id": {
+                    "type": "integer"
+                },
+                "sentiment_score": {
+                    "type": "number"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "topic": {
+                    "type": "string"
+                }
+            }
+        },
+        "User.User": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_handlers_Board.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_handlers_Feedback.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_handlers_auth.LoginUser": {
             "type": "object",
             "required": [
                 "login",
@@ -200,7 +508,59 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RegisterUser": {
+        "api_handlers_auth.RegisterUser": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 8
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Board.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.LoginUser": {
+            "type": "object",
+            "required": [
+                "login",
+                "password"
+            ],
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.RegisterUser": {
             "type": "object",
             "required": [
                 "email",
@@ -236,6 +596,52 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "ok"
+                }
+            }
+        },
+        "metric.Metric": {
+            "type": "object",
+            "properties": {
+                "Sentiment": {
+                    "$ref": "#/definitions/metric.Sentiment"
+                },
+                "averageSentiment": {
+                    "type": "number"
+                },
+                "distributionByChannel": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number"
+                    }
+                },
+                "distributionByTopic": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number"
+                    }
+                },
+                "percentageSentimentUnderTreshold": {
+                    "type": "number"
+                },
+                "volumetryByDay": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number"
+                    }
+                }
+            }
+        },
+        "metric.Sentiment": {
+            "type": "object",
+            "properties": {
+                "negative": {
+                    "type": "number"
+                },
+                "neutral": {
+                    "type": "number"
+                },
+                "positive": {
+                    "type": "number"
                 }
             }
         }

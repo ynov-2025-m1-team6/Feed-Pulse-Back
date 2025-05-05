@@ -1,6 +1,50 @@
 basePath: /
 definitions:
-  auth.LoginUser:
+  Feedback.FeedbackWithAnalysis:
+    properties:
+      board_id:
+        type: integer
+      channel:
+        type: string
+      date:
+        type: string
+      feedback_id:
+        type: integer
+      sentiment_score:
+        type: number
+      text:
+        type: string
+      topic:
+        type: string
+    type: object
+  User.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+      updatedAt:
+        type: string
+      username:
+        type: string
+      uuid:
+        type: string
+    type: object
+  api_handlers_Board.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  api_handlers_Feedback.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  api_handlers_auth.LoginUser:
     properties:
       login:
         type: string
@@ -10,7 +54,42 @@ definitions:
     - login
     - password
     type: object
-  auth.RegisterUser:
+  api_handlers_auth.RegisterUser:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 50
+        minLength: 8
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Board.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.LoginUser:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.RegisterUser:
     properties:
       email:
         type: string
@@ -37,6 +116,36 @@ definitions:
         example: ok
         type: string
     type: object
+  metric.Metric:
+    properties:
+      Sentiment:
+        $ref: '#/definitions/metric.Sentiment'
+      averageSentiment:
+        type: number
+      distributionByChannel:
+        additionalProperties:
+          type: number
+        type: object
+      distributionByTopic:
+        additionalProperties:
+          type: number
+        type: object
+      percentageSentimentUnderTreshold:
+        type: number
+      volumetryByDay:
+        additionalProperties:
+          type: number
+        type: object
+    type: object
+  metric.Sentiment:
+    properties:
+      negative:
+        type: number
+      neutral:
+        type: number
+      positive:
+        type: number
+    type: object
 host: localhost:3000
 info:
   contact: {}
@@ -56,7 +165,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/auth.LoginUser'
+          $ref: '#/definitions/api_handlers_auth.LoginUser'
       produces:
       - application/json
       responses:
@@ -115,7 +224,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/auth.RegisterUser'
+          $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.RegisterUser'
       produces:
       - application/json
       responses:
@@ -138,6 +247,165 @@ paths:
       summary: Register a new user
       tags:
       - Auth
+  /api/auth/user:
+    get:
+      consumes:
+      - application/json
+      description: Get the current user's information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user information
+          schema:
+            $ref: '#/definitions/User.User'
+        "401":
+          description: authentication error
+          schema:
+            $ref: '#/definitions/httpUtils.HTTPError'
+        "404":
+          description: user not found error
+          schema:
+            $ref: '#/definitions/httpUtils.HTTPError'
+        "500":
+          description: internal server error
+          schema:
+            $ref: '#/definitions/httpUtils.HTTPError'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user information
+      tags:
+      - Auth
+  /api/board/metrics:
+    get:
+      consumes:
+      - application/json
+      description: Get metrics for a specific board based on feedback data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Metrics data
+          schema:
+            $ref: '#/definitions/metric.Metric'
+        "400":
+          description: Bad request error
+          schema:
+            $ref: '#/definitions/api_handlers_Board.ErrorResponse'
+        "401":
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/api_handlers_Board.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api_handlers_Board.ErrorResponse'
+      summary: Get board metrics
+      tags:
+      - Board
+  /api/feedbacks/analyses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves feedbacks with their analyses for the authenticated user
+      parameters:
+      - description: Filter feedbacks by channel
+        in: query
+        name: channel
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of feedbacks with analyses
+          schema:
+            items:
+              $ref: '#/definitions/Feedback.FeedbackWithAnalysis'
+            type: array
+        "400":
+          description: Bad request error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+        "401":
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+      summary: Get feedbacks for the authenticated user
+      tags:
+      - Feedback
+  /api/feedbacks/fetch:
+    post:
+      consumes:
+      - application/json
+      description: Fetches comment data from JSONPlaceholder API and converts them
+        to feedback data
+      parameters:
+      - description: Limit the number of feedbacks to fetch
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JSONPlaceholder data processed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+        "401":
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+      summary: Fetch feedback data from external API
+      tags:
+      - Feedback
+  /api/feedbacks/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Process a JSON file upload containing feedback data and store it
+        in the database
+      parameters:
+      - description: JSON file containing feedback data
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JSONPlaceholder data processed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+        "401":
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api_handlers_Feedback.ErrorResponse'
+      summary: Upload a file containing feedbacks
+      tags:
+      - Feedback
   /ping:
     get:
       consumes:

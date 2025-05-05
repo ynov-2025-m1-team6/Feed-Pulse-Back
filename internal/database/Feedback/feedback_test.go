@@ -2,6 +2,8 @@ package Feedback
 
 import (
 	"errors"
+	"github.com/tot0p/env"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 	"testing"
 	"time"
 
@@ -152,12 +154,16 @@ func TestCreateFeedback(t *testing.T) {
 		t.Fatalf("Error setting up test: %v", err)
 	}
 
+	//init the mixtral client
+	_ = env.LoadPath("../../../.env")
+	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"), env.Get("EMAIL_PASSWORD"))
+
 	// Define test data
 	testDate := time.Now()
 	testFeedback := Feedback.Feedback{
 		Date:    testDate,
 		Channel: "email",
-		Text:    "Test feedback",
+		Text:    "The application is great!",
 		BoardID: 1,
 	}
 
@@ -173,12 +179,19 @@ func TestCreateFeedback(t *testing.T) {
 	// Setup expectations for the create operation
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "feedbacks"`).
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), testDate, "email", "Test feedback", 1).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), testDate, "email", "The application is great!", 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery(`SELECT (.+) FROM "feedbacks" WHERE (.+)`).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id"}).
+			AddRow(1, time.Now(), time.Now(), testDate, "email", "The application is great!", 1))
+	mock.ExpectQuery(`INSERT INTO "analyses"`).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
-
+	mock.ExpectCommit()
 	// Call the function we're testing
-	createdFeedback, err := CreateFeedback(testFeedback)
+	createdFeedback, err := CreateFeedback(testFeedback, "dummyemail@example.com")
 
 	// Assert expectations
 	assert.Nil(t, err)
@@ -189,11 +202,11 @@ func TestCreateFeedback(t *testing.T) {
 	// Test with database error
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "feedbacks"`).
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), testDate, "email", "Test feedback", 1).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), testDate, "email", "The application is great!", 1).
 		WillReturnError(errors.New("database error"))
 	mock.ExpectRollback()
 
-	_, err = CreateFeedback(testFeedback)
+	_, err = CreateFeedback(testFeedback, "dummyemail@example.com")
 	assert.NotNil(t, err)
 }
 
