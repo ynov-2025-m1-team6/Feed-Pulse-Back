@@ -13,6 +13,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// ErrorResponse represents the error response structure
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+// BoardMetricsHandler godoc
+// @Summary Get board metrics
+// @Description Get metrics for a specific board based on feedback data
+// @Tags Board
+// @Accept json
+// @Produce json
+// @Success 200 {object} metric.Metric "Metrics data"
+// @Failure 400 {object} ErrorResponse "Bad request error"
+// @Failure 401 {object} ErrorResponse "Unauthorized error"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /api/board/metrics [get]
 func BoardMetricsHandler(c *fiber.Ctx) error {
 	// Get board ID from query parameter - default to 1 if not provided
 	userUUID, ok := middleware.GetUserUUID(c)
