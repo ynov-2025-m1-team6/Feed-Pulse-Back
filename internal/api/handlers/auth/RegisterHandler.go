@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+
 	"github.com/gofiber/fiber/v2"
 	userDB "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/user"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
@@ -14,6 +15,7 @@ import (
 type UserRepository interface {
 	GetUserByUsername(username string) (*User.User, error)
 	GetUserByEmail(email string) (*User.User, error)
+	GetUserByUUID(uuid string) (*User.User, error)
 	CreateUser(user *User.User) error
 }
 
@@ -26,6 +28,10 @@ func (r *DefaultUserRepository) GetUserByUsername(username string) (*User.User, 
 
 func (r *DefaultUserRepository) GetUserByEmail(email string) (*User.User, error) {
 	return userDB.GetUserByEmail(email)
+}
+
+func (r *DefaultUserRepository) GetUserByUUID(uuid string) (*User.User, error) {
+	return userDB.GetUserByUUID(uuid)
 }
 
 func (r *DefaultUserRepository) CreateUser(user *User.User) error {

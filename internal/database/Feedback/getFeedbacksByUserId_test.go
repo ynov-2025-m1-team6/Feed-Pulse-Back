@@ -21,7 +21,7 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-	feedbacks, err := GetFeedbacksWithAnalysesByUserId(userID)
+	feedbacks, err := GetFeedbacksWithAnalysesByUserId(userID, "")
 	assert.Nil(t, feedbacks)
 	assert.Equal(t, ErrUserNotFound, err)
 
@@ -35,7 +35,7 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"board_id"}))
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID)
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
 	assert.Nil(t, feedbacks)
 	assert.Equal(t, ErrBoardNotFound, err)
 
@@ -73,7 +73,7 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 		WithArgs(2).
 		WillReturnRows(mockFeedbacks2)
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID)
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
 	assert.Nil(t, err)
 	assert.Len(t, feedbacks, 3)
 	if len(feedbacks) >= 3 {
@@ -95,7 +95,7 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(errors.New("database error"))
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID)
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
 	assert.Nil(t, feedbacks)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database error")
@@ -110,7 +110,7 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(errors.New("database error"))
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID)
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
 	assert.Nil(t, feedbacks)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database error")
@@ -129,7 +129,7 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 		WithArgs(3).
 		WillReturnError(errors.New("database error"))
 
-	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID)
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userID, "")
 	assert.Nil(t, feedbacks)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database error")

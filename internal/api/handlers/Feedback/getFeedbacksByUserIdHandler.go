@@ -20,7 +20,10 @@ func GetFeedbacksByUserIdHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	feedbacks, err := Feedback.GetFeedbacksWithAnalysesByUserId(userId)
+	// Get channel if specified
+	channel := c.Query("channel", "")
+
+	feedbacks, err := Feedback.GetFeedbacksWithAnalysesByUserId(userId, channel)
 	if err != nil {
 		if errors.Is(err, Feedback.ErrUserNotFound) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
