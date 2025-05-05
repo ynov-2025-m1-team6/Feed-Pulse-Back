@@ -4,18 +4,30 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Board"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
-	"io"
 
 	"github.com/gofiber/fiber/v2"
 	feedbackDB "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Feedback"
 	feedbackModel "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
 )
 
-// UploadFeedbackFileHandler processes a JSON file upload and stores the data in the database
+// UploadFeedbackFileHandler godoc
+// @Summary Upload a file containing feedbacks
+// @Description Process a JSON file upload containing feedback data and store it in the database
+// @Tags Feedback
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "JSON file containing feedback data"
+// @Success 200 {object} map[string]interface{} "JSONPlaceholder data processed successfully"
+// @Failure 400 {object} ErrorResponse "Bad request error"
+// @Failure 401 {object} ErrorResponse "Unauthorized error"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /api/feedbacks/upload [post]
 func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 	// Get user UUID from context
 	userUUID, check := middleware.GetUserUUID(c)

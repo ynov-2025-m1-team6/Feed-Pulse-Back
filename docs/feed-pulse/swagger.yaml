@@ -1,5 +1,44 @@
 basePath: /
 definitions:
+  Feedback.FeedbackWithAnalysis:
+    properties:
+      board_id:
+        type: integer
+      channel:
+        type: string
+      date:
+        type: string
+      feedback_id:
+        type: integer
+      sentiment_score:
+        type: number
+      text:
+        type: string
+      topic:
+        type: string
+    type: object
+  User.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+      updatedAt:
+        type: string
+      username:
+        type: string
+      uuid:
+        type: string
+    type: object
+  api_handlers_Feedback.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
   api_handlers_auth.LoginUser:
     properties:
       login:
@@ -25,16 +64,9 @@ definitions:
     - password
     - username
     type: object
-  api_handlers_auth.UserResponse:
+  github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse:
     properties:
-      email:
-        example: john@example.com
-        type: string
-      username:
-        example: john_doe
-        type: string
-      uuid:
-        example: 550e8400-e29b-41d4-a716-446655440000
+      error:
         type: string
     type: object
   github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.LoginUser:
@@ -61,18 +93,6 @@ definitions:
     - email
     - password
     - username
-    type: object
-  github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.UserResponse:
-    properties:
-      email:
-        example: john@example.com
-        type: string
-      username:
-        example: john_doe
-        type: string
-      uuid:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
     type: object
   httpUtils.HTTPError:
     properties:
@@ -164,7 +184,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/api_handlers_auth.RegisterUser'
+          $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.RegisterUser'
       produces:
       - application/json
       responses:
@@ -198,7 +218,7 @@ paths:
         "200":
           description: user information
           schema:
-            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.UserResponse'
+            $ref: '#/definitions/User.User'
         "401":
           description: authentication error
           schema:
@@ -216,6 +236,111 @@ paths:
       summary: Get user information
       tags:
       - Auth
+  /api/feedbacks/analyses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves feedbacks with their analyses for the authenticated user
+      parameters:
+      - description: Filter feedbacks by channel
+        in: query
+        name: channel
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of feedbacks with analyses
+          schema:
+            items:
+              $ref: '#/definitions/Feedback.FeedbackWithAnalysis'
+            type: array
+        "400":
+          description: Bad request error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+        "401":
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+      summary: Get feedbacks for the authenticated user
+      tags:
+      - Feedback
+  /api/feedbacks/fetch:
+    post:
+      consumes:
+      - application/json
+      description: Fetches comment data from JSONPlaceholder API and converts them
+        to feedback data
+      parameters:
+      - description: Limit the number of feedbacks to fetch
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JSONPlaceholder data processed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+        "401":
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+      summary: Fetch feedback data from external API
+      tags:
+      - Feedback
+  /api/feedbacks/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Process a JSON file upload containing feedback data and store it
+        in the database
+      parameters:
+      - description: JSON file containing feedback data
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message=File processed successfully, total=number of feedbacks,
+            success_count=number of successfully processed feedbacks, error_count=number
+            of failed feedbacks, errors=list of errors
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+        "401":
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse'
+      summary: Upload a file containing feedbacks
+      tags:
+      - Feedback
   /ping:
     get:
       consumes:
