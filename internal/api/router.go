@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers/Board"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers/Feedback"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers/auth"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
@@ -42,4 +43,8 @@ func SetupRoutes(app *fiber.App) {
 	feedbackGrp.Post("/upload/:board_id", Feedback.UploadFeedbackFileHandler)
 	feedbackGrp.Post("/fetch/:board_id", Feedback.FetchFeedbackHandler)
 	feedbackGrp.Get("/analyses/:user_id", Feedback.GetFeedbacksByUserIdHandler)
+
+	boardGrp := api.Group("/board")
+	boardGrp.Get("/:board_id/metrics", Board.BoardMetricsHandler)
+
 }
