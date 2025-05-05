@@ -1,6 +1,8 @@
 package Feedback
 
 import (
+	"github.com/tot0p/env"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 	"testing"
 	"time"
 
@@ -13,6 +15,11 @@ import (
 )
 
 func TestUploadFeedbacksFromFile(t *testing.T) {
+
+	//init the mixtral client
+	_ = env.LoadPath("../../../.env")
+	sentimentAnalysis.InitSentimentAnalysis(env.Get("MISTRAL_API_KEY"))
+
 	// Test successful upload of feedbacks
 	t.Run("Successfully upload and save multiple feedbacks", func(t *testing.T) {
 		// Setup test DB with regexp matcher for more flexible matching
@@ -72,6 +79,13 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		mock.ExpectQuery(`SELECT (.+) FROM "feedbacks" WHERE (.+)`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id"}).
+				AddRow(1, time.Now(), time.Now(), testDate, "email", "The application is great!", 1))
+		mock.ExpectQuery(`INSERT INTO "analyses"`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectCommit()
 
 		// For the second feedback, expect validation check inside CreateFeedback
@@ -85,6 +99,13 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "feedbacks"`).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
+		mock.ExpectQuery(`SELECT (.+) FROM "feedbacks" WHERE (.+)`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id"}).
+				AddRow(1, time.Now(), time.Now(), testDate, "email", "The application is great!", 1))
+		mock.ExpectQuery(`INSERT INTO "analyses"`).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectCommit()
 
 		mock.ExpectCommit()
