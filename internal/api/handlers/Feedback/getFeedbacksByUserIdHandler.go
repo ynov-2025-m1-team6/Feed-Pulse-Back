@@ -4,26 +4,23 @@ import (
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Feedback"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
 )
 
 // GetFeedbacksByUserIdHandler retrieves feedbacks with their analyses for a given user ID.
 func GetFeedbacksByUserIdHandler(c *fiber.Ctx) error {
-	userId, err := c.ParamsInt("user_id")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid user ID",
-		})
-	}
-	if userId <= 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "User ID must be a positive integer",
+	// Get user UUID from context
+	userUUID, check := middleware.GetUserUUID(c)
+	if !check {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized: user not found in context",
 		})
 	}
 
 	// Get channel if specified
 	channel := c.Query("channel", "")
 
-	feedbacks, err := Feedback.GetFeedbacksWithAnalysesByUserId(userId, channel)
+	feedbacks, err := Feedback.GetFeedbacksWithAnalysesByUserId(userUUID, channel)
 	if err != nil {
 		if errors.Is(err, Feedback.ErrUserNotFound) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
