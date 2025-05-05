@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Board"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/User"
-	"io"
 
 	"github.com/gofiber/fiber/v2"
 	feedbackDB "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Feedback"
@@ -144,6 +145,8 @@ func parseFeedbackJson(fileBytes []byte) ([]feedbackModel.FeedbackJson, error) {
 	// Validate the feedbacks
 	if len(feedbacksJson) == 0 {
 		return nil, errors.New("no feedback data found in file")
+	} else if len(feedbacksJson) > 10 {
+		return nil, errors.New("too many feedbacks in file, maximum is 10")
 	}
 
 	return feedbacksJson, nil
