@@ -485,3 +485,55 @@ func TestGetBoardsWithFeedbacks(t *testing.T) {
 	_, err = GetBoardsWithFeedbacks(2)
 	assert.NotNil(t, err)
 }
+
+func TestGetBoardsByUserID(t *testing.T) {
+	mock, err := setupTest()
+	if err != nil {
+		t.Fatalf("Error setting up test: %v", err)
+	}
+
+	// Define expected boards that should be returned
+	expectedBoards := []Board.Board{
+		{
+			BaseModel: BaseModel.BaseModel{Id: 1},
+			Name:      "Board 1 for User",
+		},
+		{
+			BaseModel: BaseModel.BaseModel{Id: 2},
+			Name:      "Board 2 for User",
+		},
+	}
+
+	// Setup mock rows for the JOIN query
+	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"})
+	for _, board := range expectedBoards {
+		rows.AddRow(board.Id, board.CreatedAt, board.UpdatedAt, board.Name)
+	}
+
+	// Expect a JOIN query on user_boards and a WHERE condition for the user ID
+	mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id WHERE user_boards.user_id = \$1`).
+		WithArgs(10). // User ID 10 for testing
+		WillReturnRows(rows)
+
+	// Call the function we're testing
+	boards, err := GetBoardsByUserID(10)
+
+	// Assertions
+	assert.Nil(t, err)
+	assert.Equal(t, len(expectedBoards), len(boards))
+	if len(boards) >= 2 {
+		assert.Equal(t, expectedBoards[0].Id, boards[0].Id)
+		assert.Equal(t, expectedBoards[0].Name, boards[0].Name)
+		assert.Equal(t, expectedBoards[1].Id, boards[1].Id)
+		assert.Equal(t, expectedBoards[1].Name, boards[1].Name)
+	}
+
+	// Test database error scenario
+	mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id WHERE user_boards.user_id = \$1`).
+		WithArgs(11). // Different user ID for error test
+		WillReturnError(errors.New("database error"))
+
+	// Call function with error condition
+	_, err = GetBoardsByUserID(11)
+	assert.NotNil(t, err)
+}

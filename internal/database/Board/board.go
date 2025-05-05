@@ -142,3 +142,19 @@ func GetBoardsWithFeedbacks(id int) (Board.Board, error) {
 	}
 	return board, nil
 }
+
+// GetBoardsByUserID returns all boards that a specific user has access to
+func GetBoardsByUserID(userId int) ([]Board.Board, error) {
+	var boards []Board.Board
+
+	// Using joins to get boards that are associated with the user through the user_boards junction table
+	result := database.DB.Joins("JOIN user_boards ON boards.id = user_boards.board_id").
+		Where("user_boards.user_id = ?", userId).
+		Find(&boards)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return boards, nil
+}

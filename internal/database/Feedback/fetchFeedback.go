@@ -55,9 +55,9 @@ func FetchAndSaveFeedbacks(feedbacks []feedbackModel.Feedback) (int, []string, e
 		}
 
 		// Create the feedback
-		result := tx.Create(&feedback)
-		if result.Error != nil {
-			errorMsg := fmt.Sprintf("Feedback #%d: %s", i+1, result.Error.Error())
+		_, err := CreateFeedback(feedback)
+		if err != nil {
+			errorMsg := fmt.Sprintf("Feedback #%d: %s", i+1, err.Error())
 			errorMessages = append(errorMessages, errorMsg)
 			continue
 		}
