@@ -4,6 +4,17 @@ import { Rate } from 'k6/metrics';
 
 const errorRate = new Rate('errors');
 
+// Environment configuration
+const environments = {
+  local: 'http://localhost:3000',
+  staging: 'https://feed-pulse-api-dev.onrender.com',
+  prod: 'https://feed-pulse-api.onrender.com'
+};
+
+// Get environment from environment variable, default to local
+const environment = __ENV.ENVIRONMENT || 'local';
+const baseUrl = environments[environment];
+
 export const options = {
   scenarios: {
     // Basic load test - reduced from 50 to 20 VUs
@@ -43,7 +54,7 @@ export const options = {
 };
 
 export function loginTest() {
-  const url = 'http://localhost:3000/api/auth/login';
+  const url = `${baseUrl}/api/auth/login`;
   const payload = JSON.stringify({
     login: "ftecher3",
     password: "12345678"
@@ -70,6 +81,6 @@ export function loginTest() {
 
 export function handleSummary(data) {
   return {
-    './results/login-test-results.json': JSON.stringify(data),
+    [`./results/login-test-results-${environment}.json`]: JSON.stringify(data),
   };
 }

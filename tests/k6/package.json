@@ -8,7 +8,9 @@
     "stop-server": "taskkill /F /IM main.exe",
     "test:ping": "wait-on tcp:3000 && k6 run ping.js",
     "test:login": "wait-on tcp:3000 && k6 run login.js",
-    "test": "npm run start-server && wait-on tcp:3000 && k6 run ping.js && k6 run login.js && npm run stop-server"
+    "test": "npm run start-server && wait-on tcp:3000 && k6 run ping.js && k6 run login.js && npm run stop-server",
+    "test:staging": "k6 run -e ENVIRONMENT=staging ping.js && k6 run -e ENVIRONMENT=staging login.js",
+    "test:prod": "k6 run -e ENVIRONMENT=prod ping.js && k6 run -e ENVIRONMENT=prod login.js"
   },
   "keywords": [
     "k6",

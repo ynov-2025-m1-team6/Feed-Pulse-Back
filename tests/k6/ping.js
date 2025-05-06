@@ -4,6 +4,17 @@ import { Rate } from 'k6/metrics';
 
 const errorRate = new Rate('errors');
 
+// Environment configuration
+const environments = {
+  local: 'http://localhost:3000',
+  staging: 'https://feed-pulse-api-dev.onrender.com',
+  prod: 'https://feed-pulse-api.onrender.com'
+};
+
+// Get environment from environment variable, default to local
+const environment = __ENV.ENVIRONMENT || 'local';
+const baseUrl = environments[environment];
+
 export const options = {
   scenarios: {
     // Test de charge de base
@@ -43,7 +54,7 @@ export const options = {
 };
 
 export function pingTest() {
-  const response = http.get('http://localhost:3000/ping');
+  const response = http.get(`${baseUrl}/ping`);
 
   const checkResult = check(response, {
     'status is 200': (r) => r.status === 200,
@@ -57,6 +68,6 @@ export function pingTest() {
 
 export function handleSummary(data) {
   return {
-    './results/ping-test-results.json': JSON.stringify(data),
+    [`./results/ping-test-results-${environment}.json`]: JSON.stringify(data),
   };
 }
