@@ -1,0 +1,62 @@
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+import { Rate } from 'k6/metrics';
+
+const errorRate = new Rate('errors');
+
+export const options = {
+  scenarios: {
+    // Test de charge de base
+    constant_load: {
+      executor: 'constant-vus',
+      vus: 50,
+      duration: '30s',
+      exec: 'pingTest',
+    },
+    // Test avec montée en charge progressive
+    ramping_load: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '30s', target: 50 },
+        { duration: '30s', target: 50 },
+        { duration: '30s', target: 0 },
+      ],
+      exec: 'pingTest',
+    },
+    // Test de stress
+    stress_test: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '1m', target: 100 },
+        { duration: '2m', target: 200 },
+        { duration: '1m', target: 0 },
+      ],
+      exec: 'pingTest',
+    },
+  },
+  thresholds: {
+    http_req_duration: ['p(95)<500'], // 95% des requêtes doivent être sous 500ms
+    http_req_failed: ['rate<0.01'],   // Moins de 1% d'erreurs
+  },
+};
+
+export function pingTest() {
+  const response = http.get('http://localhost:3000/ping');
+
+  const checkResult = check(response, {
+    'status is 200': (r) => r.status === 200,
+    'response time < 500ms': (r) => r.timings.duration < 500,
+  });
+
+  errorRate.add(!checkResult);
+
+  sleep(1);
+}
+
+export function handleSummary(data) {
+  return {
+    './results/ping-test-results.json': JSON.stringify(data),
+  };
+}

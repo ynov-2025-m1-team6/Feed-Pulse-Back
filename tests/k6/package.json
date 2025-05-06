@@ -1,0 +1,27 @@
+{
+  "name": "k6",
+  "version": "1.0.0",
+  "description": "Tests de performance K6 pour Feed-Pulse",
+  "main": "ping.js",
+  "scripts": {
+    "start-server": "cd ../../ && start /B go run cmd/app/main.go",
+    "stop-server": "taskkill /F /IM main.exe",
+    "test:ping": "wait-on tcp:3000 && k6 run ping.js",
+    "test:login": "wait-on tcp:3000 && k6 run login.js",
+    "test": "npm run start-server && wait-on tcp:3000 && k6 run ping.js && k6 run login.js && npm run stop-server"
+  },
+  "keywords": [
+    "k6",
+    "performance",
+    "testing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "k6": "^0.0.0"
+  },
+  "devDependencies": {
+    "wait-on": "^7.2.0"
+  }
+}
