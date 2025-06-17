@@ -39,10 +39,14 @@ func SetupRoutes(app *fiber.App) error {
 		TimeFormat: "02-Jan-2006 15:04:05",
 		TimeZone:   "Local",
 	}))
+	allowedOrigins := env.Get("ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOrigins = "*"
+	}
 
 	// use CORS middleware
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
+		AllowOrigins: allowedOrigins,
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
