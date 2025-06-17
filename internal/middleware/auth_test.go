@@ -347,8 +347,8 @@ func TestAuthRequired_TokenWithoutClaims(t *testing.T) {
 	sessionManager.InitSessionManager("test-secret-key", 1*time.Hour)
 
 	// Create a valid JWT token but without proper claims structure
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
 	})
 
 	tokenString, err := token.SignedString(sessionManager.Instance.GetSecretKey())
