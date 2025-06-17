@@ -34,6 +34,9 @@ func GetFeedbacksByUserIdHandler(c *fiber.Ctx) error {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: "Unauthorized access attempt: user not found in context",
 			Level:   sentry.LevelError,
+			User: sentry.User{
+				ID: userUUID,
+			},
 			Tags: map[string]string{
 				"handler": "GetFeedbacksByUserIdHandler",
 				"action":  "get_feedbacks_by_user_id",
@@ -53,8 +56,8 @@ func GetFeedbacksByUserIdHandler(c *fiber.Ctx) error {
 			sentry.CaptureEvent(&sentry.Event{
 				Message: "User not found while retrieving feedbacks",
 				Level:   sentry.LevelError,
-				Extra: map[string]interface{}{
-					"userUUID": userUUID,
+				User: sentry.User{
+					ID: userUUID,
 				},
 				Tags: map[string]string{
 					"handler": "GetFeedbacksByUserIdHandler",
@@ -69,8 +72,12 @@ func GetFeedbacksByUserIdHandler(c *fiber.Ctx) error {
 			sentry.CaptureEvent(&sentry.Event{
 				Message: "No boards found for user while retrieving feedbacks",
 				Level:   sentry.LevelError,
-				Extra: map[string]interface{}{
-					"userUUID": userUUID,
+				User: sentry.User{
+					ID: userUUID,
+				},
+				Tags: map[string]string{
+					"handler": "GetFeedbacksByUserIdHandler",
+					"action":  "get_feedbacks_by_user_id",
 				},
 			})
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -81,8 +88,10 @@ func GetFeedbacksByUserIdHandler(c *fiber.Ctx) error {
 			Message: "Error retrieving feedbacks for user",
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"userUUID": userUUID,
-				"error":    err.Error(),
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "GetFeedbacksByUserIdHandler",

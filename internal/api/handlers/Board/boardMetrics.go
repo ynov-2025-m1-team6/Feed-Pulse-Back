@@ -51,8 +51,8 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: fmt.Sprintf("Failed to retrieve boards for user %s: %v", userUUID, err),
 			Level:   sentry.LevelError,
-			Extra: map[string]interface{}{
-				"userUUID": userUUID,
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "BoardMetricsHandler",
@@ -67,8 +67,8 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: fmt.Sprintf("No boards found for user %s", userUUID),
 			Level:   sentry.LevelWarning,
-			Extra: map[string]interface{}{
-				"userUUID": userUUID,
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "BoardMetricsHandler",
@@ -87,8 +87,10 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Board validation failed for ID %d: %v", boardID, err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"boardID":  boardID,
-				"userUUID": userUUID,
+				"boardID": boardID,
+			},
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "BoardMetricsHandler",
@@ -106,8 +108,10 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Failed to retrieve board feedbacks for board ID %d: %v", boardID, err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"boardID":  boardID,
-				"userUUID": userUUID,
+				"boardID": boardID,
+			},
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "BoardMetricsHandler",
@@ -125,8 +129,10 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Failed to calculate metrics for board ID %d: %v", boardID, err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"boardID":  boardID,
-				"userUUID": userUUID,
+				"boardID": boardID,
+			},
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "BoardMetricsHandler",
