@@ -169,4 +169,50 @@ func TestGetFeedbacksWithAnalysesByUserId(t *testing.T) {
 	assert.Nil(t, feedbacks)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database error")
+
+	// Test case 7: channel filter applied
+	userUUID = "d4c8169e-8016-496d-af6f-af4a85323028"
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery(`SELECT "id" FROM "users" WHERE uuid = \$1`).
+		WithArgs(userUUID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery(`SELECT board_id FROM "user_boards" WHERE user_id = \$1`).
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"board_id"}).AddRow(1).AddRow(2))
+
+	// Expect query for board 1 with email filter
+	mock.ExpectQuery(`SELECT feedbacks\.\*, analyses\.\* FROM "feedbacks" LEFT JOIN analyses ON feedbacks.id = analyses.feedback_id WHERE feedbacks.board_id = \$1 AND feedbacks.channel = \$2`).
+		WithArgs(1, "email").
+		WillReturnRows(sqlmock.NewRows([]string{
+			"feedback_id", "date", "channel", "text", "board_id",
+			"sentiment_score", "topic"}).
+			AddRow(1, testDate, "email", "Great service", 1, 0.8, "Service"))
+
+	// Expect query for board 2 with email filter
+	mock.ExpectQuery(`SELECT feedbacks\.\*, analyses\.\* FROM "feedbacks" LEFT JOIN analyses ON feedbacks.id = analyses.feedback_id WHERE feedbacks.board_id = \$1 AND feedbacks.channel = \$2`).
+		WithArgs(2, "email").
+		WillReturnRows(sqlmock.NewRows([]string{
+			"feedback_id", "date", "channel", "text", "board_id",
+			"sentiment_score", "topic"}).
+			AddRow(3, testDate, "email", "Excellent", 2, 0.9, "Service"))
+
+	feedbacks, err = GetFeedbacksWithAnalysesByUserId(userUUID, "email")
+	assert.Nil(t, err)
+	assert.Len(t, feedbacks, 2)
+	if len(feedbacks) >= 2 {
+		assert.Equal(t, 1, feedbacks[0].FeedbackID)
+		assert.Equal(t, "email", feedbacks[0].Channel)
+		assert.Equal(t, "Great service", feedbacks[0].Text)
+		assert.Equal(t, 0.8, feedbacks[0].SentimentScore)
+		assert.Equal(t, "Service", feedbacks[0].Topic)
+		assert.Equal(t, 3, feedbacks[1].FeedbackID)
+		assert.Equal(t, "email", feedbacks[1].Channel)
+		assert.Equal(t, "Excellent", feedbacks[1].Text)
+		assert.Equal(t, 2, feedbacks[1].BoardID)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }
