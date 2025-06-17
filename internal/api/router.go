@@ -1,9 +1,11 @@
 package api
 
 import (
+	"github.com/getsentry/sentry-go"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/tot0p/env"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers/Board"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/api/handlers/Feedback"
@@ -11,7 +13,26 @@ import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/middleware"
 )
 
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App) error {
+	// setup sentry error tracking
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:              env.Get("SENTRY_DSN"),
+		Environment:      env.Get("ENV"),
+		EnableTracing:    true,
+		TracesSampleRate: 1.0, // Adjust the sample rate as needed
+		SendDefaultPII:   true,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Initialize Sentry error handling middleware
+	sentryHandler := middleware.SentryFiber(middleware.Options{
+		Repanic:         false,
+		WaitForDelivery: true,
+	})
+	app.Use(sentryHandler)
+
 	// use logger middleware
 	app.Use(logger.New(logger.Config{
 		Format:     "[${time}] ${status} - ${method} ${path}\n",
@@ -26,7 +47,11 @@ func SetupRoutes(app *fiber.App) {
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
 
-	app.Get("/ping", handlers.PingHandler)
+	app.All("/foo", func(c *fiber.Ctx) error {
+		panic("y tho")
+	})
+
+	app.Get("/ping", handlers.PingHandler) // done
 
 	api := app.Group("/api")
 
@@ -48,5 +73,5 @@ func SetupRoutes(app *fiber.App) {
 
 	boardGrp := api.Group("/board")
 	boardGrp.Get("/metrics", middleware.AuthRequired(), Board.BoardMetricsHandler)
-
+	return nil
 }
