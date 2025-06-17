@@ -56,7 +56,10 @@ func main() {
 	}
 	sessionManager.InitSessionManager(env.Get("SECRET_KEY"), 3*time.Hour)
 
-	api.SetupRoutes(app)
+	err = api.SetupRoutes(app)
+	if err != nil {
+		log.Fatalf("Failed to set up routes: %v", err)
+	}
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	port := env.Get("PORT")
