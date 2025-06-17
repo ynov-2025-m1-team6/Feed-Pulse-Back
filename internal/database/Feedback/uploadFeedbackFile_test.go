@@ -389,11 +389,11 @@ func TestUploadFeedbacksFromFile(t *testing.T) {
 		successCount, dbErrors, err := UploadFeedbacksFromFile(testFeedbacks, "test@example.com")
 
 		// Assert results
-		assert.Nil(t, err)                              // No critical error, just individual feedback errors
-		assert.Equal(t, 1, successCount)                // One successful, one failed
-		assert.Len(t, dbErrors, 1)                      // One error message
-		assert.Contains(t, dbErrors[0], "Feedback #2:") // Check error message format
-		assert.Contains(t, dbErrors[0], "invalid data") // Check that the error is included
+		assert.Nil(t, err)                                  // No critical error, just individual feedback errors
+		assert.Equal(t, 1, successCount)                    // One successful, one failed
+		assert.Len(t, dbErrors, 1)                          // One error message
+		assert.Contains(t, dbErrors[0], "Feedback #2:")     // Check error message format
+		assert.Contains(t, dbErrors[0], "unsupported data") // Check that the error is included
 
 		// Verify all expectations were met
 		if err := mock.ExpectationsWereMet(); err != nil {
