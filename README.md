@@ -1,5 +1,7 @@
 # Feed-Pulse-Back
 
+[![codecov](https://codecov.io/gh/ynov-2025-m1-team6/Feed-Pulse-Back/graph/badge.svg?token=X0H8OAHW4L)](https://codecov.io/gh/ynov-2025-m1-team6/Feed-Pulse-Back)
+
 ## Overview
 
 Feed-Pulse-Back is the backend service for the Feed-Pulse project, a web application designed to analyze and visualize feedback data. This service is maked with golang and [fiber](https://gofiber.io/) framework.
