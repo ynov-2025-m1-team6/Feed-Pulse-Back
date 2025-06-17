@@ -29,6 +29,10 @@ jobs:
                 run: go test -v -count=1 -p 4 -coverprofile=coverage.txt -covermode=atomic ./...
                 env:
                     MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+              - name: Upload coverage reports to Codecov
+                uses: codecov/codecov-action@v5
+                with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
     build:
         needs: test
         runs-on: ubuntu-latest
