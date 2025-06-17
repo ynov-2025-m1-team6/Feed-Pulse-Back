@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/getsentry/sentry-go"
-	sentryfiber "github.com/getsentry/sentry-go/fiber"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -17,16 +16,18 @@ import (
 func SetupRoutes(app *fiber.App) error {
 	// setup sentry error tracking
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:            env.Get("SENTRY_DSN"),
-		Environment:    env.Get("ENV"),
-		SendDefaultPII: true,
+		Dsn:              env.Get("SENTRY_DSN"),
+		Environment:      env.Get("ENV"),
+		EnableTracing:    true,
+		TracesSampleRate: 1.0, // Adjust the sample rate as needed
+		SendDefaultPII:   true,
 	})
 	if err != nil {
 		return err
 	}
 
 	// Initialize Sentry error handling middleware
-	sentryHandler := sentryfiber.New(sentryfiber.Options{
+	sentryHandler := middleware.SentryFiber(middleware.Options{
 		Repanic:         false,
 		WaitForDelivery: true,
 	})
@@ -46,7 +47,11 @@ func SetupRoutes(app *fiber.App) error {
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
 
-	app.Get("/ping", handlers.PingHandler)
+	app.All("/foo", func(c *fiber.Ctx) error {
+		panic("y tho")
+	})
+
+	app.Get("/ping", handlers.PingHandler) // done
 
 	api := app.Group("/api")
 

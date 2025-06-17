@@ -1,6 +1,7 @@
 package Feedback
 
 import (
+	"github.com/getsentry/sentry-go"
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Feedback"
 )
@@ -16,6 +17,17 @@ import (
 func GetAllFeedbacksHandler(c *fiber.Ctx) error {
 	feedbacks, err := Feedback.GetAllFeedbacks()
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Failed to fetch feedbacks",
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"error": err.Error(),
+			},
+			Tags: map[string]string{
+				"handler": "GetAllFeedbacksHandler",
+				"action":  "fetch_feedbacks",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch feedbacks",
 		})
