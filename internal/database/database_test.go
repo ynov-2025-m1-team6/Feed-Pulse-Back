@@ -49,7 +49,7 @@ func TestInitDatabase_InvalidConnection(t *testing.T) {
 	dbname := ""
 	host := "invalid-host-that-does-not-exist-12345"
 	port := "0"
-	sslMode := "invalid"
+	sslMode := "disable"
 
 	// Call InitDatabase with invalid parameters
 	err := InitDatabase(user, password, dbname, host, port, sslMode)
