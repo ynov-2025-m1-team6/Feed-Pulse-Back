@@ -40,7 +40,7 @@ func createMockJSONPlaceholderServer() *httptest.Server {
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(comments)
+			_ = json.NewEncoder(w).Encode(comments)
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -191,7 +191,7 @@ func TestFetchFeedbackHandler(t *testing.T) {
 		if resp.StatusCode != fiber.StatusOK {
 			// If it's not OK, let's see what the error is
 			var errorResponse map[string]interface{}
-			json.Unmarshal(body, &errorResponse)
+			_ = json.Unmarshal(body, &errorResponse)
 			t.Logf("Error response: %+v", errorResponse)
 		}
 
@@ -491,7 +491,7 @@ func TestFetchCommentsFromAPI(t *testing.T) {
 	t.Run("Invalid JSON response", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte("invalid json"))
+			_, _ = w.Write([]byte("invalid json"))
 		}))
 		defer server.Close()
 
@@ -504,7 +504,7 @@ func TestFetchCommentsFromAPI(t *testing.T) {
 	t.Run("Empty response", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte("[]"))
+			_, _ = w.Write([]byte("[]"))
 		}))
 		defer server.Close()
 
