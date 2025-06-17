@@ -537,3 +537,164 @@ func TestGetBoardsByUserID(t *testing.T) {
 	_, err = GetBoardsByUserID(11)
 	assert.NotNil(t, err)
 }
+
+func TestGetBoardsByUserUUID(t *testing.T) {
+	mock, err := setupTest()
+	if err != nil {
+		t.Fatalf("Error setting up test: %v", err)
+	}
+
+	// Define expected boards that should be returned
+	expectedBoards := []Board.Board{
+		{
+			BaseModel: BaseModel.BaseModel{Id: 1},
+			Name:      "Board 1 for User",
+		},
+		{
+			BaseModel: BaseModel.BaseModel{Id: 2},
+			Name:      "Board 2 for User",
+		},
+	}
+
+	// Setup mock rows for the JOIN query
+	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"})
+	for _, board := range expectedBoards {
+		rows.AddRow(board.Id, board.CreatedAt, board.UpdatedAt, board.Name)
+	}
+
+	// Expect a JOIN query on user_boards and a WHERE condition for the user UUID
+	mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id JOIN users ON user_boards.user_id = users.id WHERE users.uuid = \$1`).
+		WithArgs("uuid-123"). // Example UUID for testing
+		WillReturnRows(rows)
+
+	// Call the function we're testing
+	boards, err := GetBoardsByUserUUID("uuid-123")
+
+	// Assertions
+	assert.Nil(t, err)
+	assert.Equal(t, len(expectedBoards), len(boards))
+	if len(boards) >= 2 {
+		assert.Equal(t, expectedBoards[0].Id, boards[0].Id)
+		assert.Equal(t, expectedBoards[0].Name, boards[0].Name)
+		assert.Equal(t, expectedBoards[1].Id, boards[1].Id)
+		assert.Equal(t, expectedBoards[1].Name, boards[1].Name)
+	}
+
+	// Test database error scenario
+	mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id JOIN users ON user_boards.user_id = users.id WHERE users.uuid = \$1`).
+		WithArgs("uuid-456"). // Different UUID for error test
+		WillReturnError(errors.New("database error"))
+
+	// Call function with error condition
+	_, err = GetBoardsByUserUUID("uuid-456")
+	assert.NotNil(t, err)
+}
+
+func TestAssociateBoardUser(t *testing.T) {
+	// Test successful association
+	t.Run("Successful association", func(t *testing.T) {
+		mock, err := setupTest()
+		if err != nil {
+			t.Fatalf("Error setting up test: %v", err)
+		}
+
+		boardID := 1
+		userID := 10
+
+		// Setup expectations for checking if board exists
+		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE "boards"."id" = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(boardID, 1).
+			WillReturnRows(boardRows)
+
+		// Setup expectations for checking if user exists
+		userRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "uuid", "username", "email", "password"}).
+			AddRow(10, time.Now(), time.Now(), "uuid-123", "testuser", "test@example.com", "password")
+
+		mock.ExpectQuery(`SELECT \* FROM "users" WHERE "users"."id" = \$1 ORDER BY "users"."id" LIMIT \$2`).
+			WithArgs(userID, 1).
+			WillReturnRows(userRows)
+
+		// Setup expectations for the association creation - use PostgreSQL placeholders
+		mock.ExpectExec(`INSERT INTO user_boards \(user_id, board_id\) VALUES \(\$1, \$2\)`).
+			WithArgs(userID, boardID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Call the function we're testing
+		err = AssociateBoardUser(boardID, userID)
+
+		// Assert expectations
+		assert.Nil(t, err)
+	})
+
+	// Test with board not found error
+	t.Run("Board not found", func(t *testing.T) {
+		mock, err := setupTest()
+		if err != nil {
+			t.Fatalf("Error setting up test: %v", err)
+		}
+
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE "boards"."id" = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(999, 1).
+			WillReturnError(gorm.ErrRecordNotFound)
+
+		err = AssociateBoardUser(999, 10)
+		assert.NotNil(t, err)
+	})
+
+	// Test with user not found error
+	t.Run("User not found", func(t *testing.T) {
+		mock, err := setupTest()
+		if err != nil {
+			t.Fatalf("Error setting up test: %v", err)
+		}
+
+		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE "boards"."id" = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnRows(boardRows)
+
+		mock.ExpectQuery(`SELECT \* FROM "users" WHERE "users"."id" = \$1 ORDER BY "users"."id" LIMIT \$2`).
+			WithArgs(999, 1).
+			WillReturnError(gorm.ErrRecordNotFound)
+
+		err = AssociateBoardUser(1, 999)
+		assert.NotNil(t, err)
+	})
+
+	// Test with database error during insert
+	t.Run("Database error during insert", func(t *testing.T) {
+		mock, err := setupTest()
+		if err != nil {
+			t.Fatalf("Error setting up test: %v", err)
+		}
+
+		boardID := 1
+		userID := 10
+
+		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, time.Now(), time.Now(), "Test Board")
+
+		userRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "uuid", "username", "email", "password"}).
+			AddRow(10, time.Now(), time.Now(), "uuid-123", "testuser", "test@example.com", "password")
+
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE "boards"."id" = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(boardID, 1).
+			WillReturnRows(boardRows)
+
+		mock.ExpectQuery(`SELECT \* FROM "users" WHERE "users"."id" = \$1 ORDER BY "users"."id" LIMIT \$2`).
+			WithArgs(userID, 1).
+			WillReturnRows(userRows)
+
+		mock.ExpectExec(`INSERT INTO user_boards \(user_id, board_id\) VALUES \(\$1, \$2\)`).
+			WithArgs(userID, boardID).
+			WillReturnError(errors.New("database error"))
+
+		err = AssociateBoardUser(boardID, userID)
+		assert.NotNil(t, err)
+	})
+}
