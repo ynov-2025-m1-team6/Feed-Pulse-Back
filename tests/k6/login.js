@@ -67,11 +67,10 @@ export function loginTest() {
   };
 
   const response = http.post(url, payload, params);
-
   const checkResult = check(response, {
     'status is 200': (r) => r.status === 200,
     'response time < 500ms': (r) => r.timings.duration < 500,
-    'has authorization header': (r) => r.headers['Authorization'] !== undefined,
+    'has authorization header': (r) => r.headers['authorization'] !== undefined || r.headers['Authorization'] !== undefined,
   });
 
   errorRate.add(!checkResult);
