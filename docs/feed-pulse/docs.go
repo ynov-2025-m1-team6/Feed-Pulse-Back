@@ -128,7 +128,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_auth.RegisterUser"
+                            "$ref": "#/definitions/api_handlers_auth.RegisterUser"
                         }
                     }
                 ],
@@ -247,6 +247,32 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/feedbacks": {
+            "get": {
+                "description": "Fetch all feedbacks from the database",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feedback"
+                ],
+                "summary": "Get all feedbacks",
+                "responses": {
+                    "200": {
+                        "description": "List of feedbacks",
+                        "schema": {
+                            "$ref": "#/definitions/Feedback.Feedback"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/feedbacks/analyses": {
             "get": {
                 "description": "Retrieves feedbacks with their analyses for the authenticated user",
@@ -281,19 +307,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     }
                 }
@@ -331,19 +357,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     }
                 }
@@ -382,19 +408,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api_handlers_Feedback.ErrorResponse"
+                            "$ref": "#/definitions/github_com_ynov-2025-m1-team6_Feed-Pulse-Back_internal_api_handlers_Feedback.ErrorResponse"
                         }
                     }
                 }
@@ -425,6 +451,32 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "Feedback.Feedback": {
+            "type": "object",
+            "properties": {
+                "board_id": {
+                    "type": "integer"
+                },
+                "channel": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "Feedback.FeedbackWithAnalysis": {
             "type": "object",
             "properties": {

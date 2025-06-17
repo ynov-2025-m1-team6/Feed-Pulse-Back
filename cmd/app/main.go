@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 	"log"
 	"os"
 	"time"
+
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 
 	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
@@ -56,7 +57,10 @@ func main() {
 	}
 	sessionManager.InitSessionManager(env.Get("SECRET_KEY"), 3*time.Hour)
 
-	api.SetupRoutes(app)
+	err = api.SetupRoutes(app)
+	if err != nil {
+		log.Fatalf("Failed to set up routes: %v", err)
+	}
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	port := env.Get("PORT")
