@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/sessionManager"
@@ -112,7 +113,7 @@ func LoginHandlerWithRepo(c *fiber.Ctx, repo auth.UserRepository) error {
 					"action":  "user_not_found",
 				},
 			})
-			return httpUtils.NewError(c, fiber.StatusNotFound, errors.New("user not found"))
+			return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("invalid credentials"))
 		default:
 			sentry.CaptureEvent(&sentry.Event{
 				Message: "Unexpected error during login",
