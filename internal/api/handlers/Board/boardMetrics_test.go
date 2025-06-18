@@ -66,14 +66,21 @@ func TestBoardMetricsHandler(t *testing.T) {
 			AddRow(1, testDate, testDate, testDate, "test", "Great feedback", 1, "positive", 0.95)
 		mock.ExpectQuery(`SELECT \* FROM "feedbacks" WHERE "feedbacks"."board_id" = \$1`).
 			WithArgs(1).
-			WillReturnRows(feedbackQueryRows)
-
-		// Third query: GetAnalysisByFeedbackID for metric calculation
+			WillReturnRows(feedbackQueryRows) // Third query: GetAnalysisByFeedbackID for metric calculation (called multiple times)
 		analysisQueryRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "feedback_id", "topic"}).
 			AddRow(1, testDate, testDate, 1, "user experience")
+		// The analysis query is called multiple times during metric calculation
 		mock.ExpectQuery(`SELECT \* FROM "analyses" WHERE feedback_id = \$1 ORDER BY "analyses"."id" LIMIT \$2`).
 			WithArgs(1, 1).
 			WillReturnRows(analysisQueryRows)
+		mock.ExpectQuery(`SELECT \* FROM "analyses" WHERE feedback_id = \$1 ORDER BY "analyses"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "feedback_id", "topic"}).
+				AddRow(1, testDate, testDate, 1, "user experience"))
+		mock.ExpectQuery(`SELECT \* FROM "analyses" WHERE feedback_id = \$1 ORDER BY "analyses"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "feedback_id", "topic"}).
+				AddRow(1, testDate, testDate, 1, "user experience"))
 		// Create test app and handler
 		app := fiber.New()
 		app.Get("/api/board/metrics", func(c *fiber.Ctx) error {
