@@ -1,6 +1,9 @@
 package Board
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -43,58 +46,86 @@ func TestBoardMetricsHandler(t *testing.T) {
 		// Setup expectations for GetBoardsByUserUUID
 		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
 			AddRow(1, testDate, testDate, "Test Board")
-		mock.ExpectQuery(`SELECT (.+) FROM "boards"`).
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id JOIN users ON user_boards.user_id = users.id WHERE users.uuid = \$1`).
+			WithArgs("test-user-uuid").
 			WillReturnRows(boardRows)
 
 		// Setup expectations for validateBoardExists
-		mock.ExpectQuery(`SELECT (.+) FROM "boards"`).
-			WithArgs(1).
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(1, 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
 				AddRow(1, testDate, testDate, "Test Board"))
-
-		// Setup expectations for GetBoardsWithFeedbacks
-		boardWithFeedbackRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+		// Setup expectations for GetBoardsWithFeedbacks - GORM uses Preload which makes separate queries
+		// First query: Get the board
+		boardQueryRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
 			AddRow(1, testDate, testDate, "Test Board")
-		mock.ExpectQuery(`SELECT (.+) FROM "boards"`).
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnRows(boardQueryRows) // Second query: Preload feedbacks
+		feedbackQueryRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id", "sentiment", "score"}).
+			AddRow(1, testDate, testDate, testDate, "test", "Great feedback", 1, "positive", 0.95)
+		mock.ExpectQuery(`SELECT \* FROM "feedbacks" WHERE "feedbacks"."board_id" = \$1`).
 			WithArgs(1).
-			WillReturnRows(boardWithFeedbackRows)
+			WillReturnRows(feedbackQueryRows)
 
-		feedbackRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id"}).
-			AddRow(1, testDate, testDate, testDate, "test", "Great feedback", 1)
-		mock.ExpectQuery(`SELECT (.+) FROM "feedbacks"`).
-			WillReturnRows(feedbackRows)
+		// Third query: GetAnalysisByFeedbackID for metric calculation
+		analysisQueryRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "feedback_id", "topic"}).
+			AddRow(1, testDate, testDate, 1, "user experience")
+		mock.ExpectQuery(`SELECT \* FROM "analyses" WHERE feedback_id = \$1 ORDER BY "analyses"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnRows(analysisQueryRows)
+		// Create test app and handler
+		app := fiber.New()
+		app.Get("/api/board/metrics", func(c *fiber.Ctx) error {
+			c.Locals("userUUID", "test-user-uuid")
+			return BoardMetricsHandler(c)
+		})
 
 		// Create test request
-		app := fiber.New()
-		req := app.AcquireCtx(&fasthttp.RequestCtx{})
-		req.Locals("user_uuid", "test-user-uuid")
+		req := httptest.NewRequest(http.MethodGet, "/api/board/metrics", nil)
+		req.Header.Set("Content-Type", "application/json")
 
-		// Execute handler
-		err := BoardMetricsHandler(req)
-
-		// Assert response
+		// Execute request
+		resp, err := app.Test(req)
 		assert.NoError(t, err)
-		app.ReleaseCtx(req)
-	})
 
-	t.Run("Unauthorized access", func(t *testing.T) {
-		app := fiber.New()
-		req := app.AcquireCtx(&fasthttp.RequestCtx{})
-		// Explicitly not setting user_uuid in locals to simulate unauthorized access
-
-		res := app.AcquireCtx(&fasthttp.RequestCtx{})
-		err := BoardMetricsHandler(res)
-
-		// Err should be nil if the handler correctly handles unauthorized access
-		if assert.Nil(t, err) {
-			assert.Equal(t, fiber.StatusUnauthorized, res.Response().StatusCode())
-			assert.Contains(t, string(res.Response().Body()), "unauthorized: user not found in context")
-		} else {
-			t.Error("Expected no error for unauthorized access")
+		// Print response body if we get a 500 error for debugging
+		if resp.StatusCode == fiber.StatusInternalServerError {
+			body, _ := io.ReadAll(resp.Body)
+			t.Logf("Response body: %s", string(body))
 		}
 
-		app.ReleaseCtx(req)
-		app.ReleaseCtx(res)
+		// Assert response status
+		assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+		// Read and verify response body
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, body)
+
+		// Verify that all mock expectations were met
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+	t.Run("Unauthorized access", func(t *testing.T) {
+		app := fiber.New()
+		app.Get("/api/board/metrics", BoardMetricsHandler)
+
+		// Create test request without setting userUUID in context
+		req := httptest.NewRequest(http.MethodGet, "/api/board/metrics", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Execute request
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+
+		// Assert response
+		assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
+
+		// Read and verify response body
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.Contains(t, string(body), "unauthorized: user not found in context")
 	})
 }
 
