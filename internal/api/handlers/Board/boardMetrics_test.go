@@ -1,6 +1,7 @@
 package Board
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -133,6 +134,235 @@ func TestBoardMetricsHandler(t *testing.T) {
 		body, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		assert.Contains(t, string(body), "unauthorized: user not found in context")
+	})
+	t.Run("GetBoardsByUserUUID returns error", func(t *testing.T) {
+		mock := setupTest(t)
+
+		// Setup expectation for GetBoardsByUserUUID to return an error
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id JOIN users ON user_boards.user_id = users.id WHERE users.uuid = \$1`).
+			WithArgs("test-user-uuid").
+			WillReturnError(errors.New("database connection failed"))
+
+		// Create test app and handler
+		app := fiber.New()
+		app.Get("/api/board/metrics", func(c *fiber.Ctx) error {
+			c.Locals("userUUID", "test-user-uuid")
+			return BoardMetricsHandler(c)
+		})
+
+		// Create test request
+		req := httptest.NewRequest(http.MethodGet, "/api/board/metrics", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Execute request
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+
+		// Assert response
+		assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+
+		// Read and verify response body
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.Contains(t, string(body), "Invalid board")
+
+		// Verify that all mock expectations were met
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("No boards found for user", func(t *testing.T) {
+		mock := setupTest(t)
+
+		// Setup expectation for GetBoardsByUserUUID to return empty result
+		emptyRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"})
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id JOIN users ON user_boards.user_id = users.id WHERE users.uuid = \$1`).
+			WithArgs("test-user-uuid").
+			WillReturnRows(emptyRows)
+
+		// Create test app and handler
+		app := fiber.New()
+		app.Get("/api/board/metrics", func(c *fiber.Ctx) error {
+			c.Locals("userUUID", "test-user-uuid")
+			return BoardMetricsHandler(c)
+		})
+
+		// Create test request
+		req := httptest.NewRequest(http.MethodGet, "/api/board/metrics", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Execute request
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+
+		// Assert response
+		assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+
+		// Read and verify response body
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.Contains(t, string(body), "No boards found for this user")
+
+		// Verify that all mock expectations were met
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("validateBoardExists fails", func(t *testing.T) {
+		mock := setupTest(t)
+		testDate := time.Now()
+
+		// Setup expectations for GetBoardsByUserUUID
+		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, testDate, testDate, "Test Board")
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id JOIN users ON user_boards.user_id = users.id WHERE users.uuid = \$1`).
+			WithArgs("test-user-uuid").
+			WillReturnRows(boardRows)
+
+		// Setup expectations for validateBoardExists to fail
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnError(gorm.ErrRecordNotFound)
+
+		// Create test app and handler
+		app := fiber.New()
+		app.Get("/api/board/metrics", func(c *fiber.Ctx) error {
+			c.Locals("userUUID", "test-user-uuid")
+			return BoardMetricsHandler(c)
+		})
+
+		// Create test request
+		req := httptest.NewRequest(http.MethodGet, "/api/board/metrics", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Execute request
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+
+		// Assert response
+		assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+
+		// Read and verify response body
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.Contains(t, string(body), "board with ID 1 does not exist")
+
+		// Verify that all mock expectations were met
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("GetBoardsWithFeedbacks fails", func(t *testing.T) {
+		mock := setupTest(t)
+		testDate := time.Now()
+
+		// Setup expectations for GetBoardsByUserUUID
+		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, testDate, testDate, "Test Board")
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id JOIN users ON user_boards.user_id = users.id WHERE users.uuid = \$1`).
+			WithArgs("test-user-uuid").
+			WillReturnRows(boardRows)
+
+		// Setup expectations for validateBoardExists
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+				AddRow(1, testDate, testDate, "Test Board"))
+
+		// Setup expectations for GetBoardsWithFeedbacks to fail
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnError(errors.New("database connection failed"))
+
+		// Create test app and handler
+		app := fiber.New()
+		app.Get("/api/board/metrics", func(c *fiber.Ctx) error {
+			c.Locals("userUUID", "test-user-uuid")
+			return BoardMetricsHandler(c)
+		})
+
+		// Create test request
+		req := httptest.NewRequest(http.MethodGet, "/api/board/metrics", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Execute request
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+
+		// Assert response
+		assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
+
+		// Read and verify response body
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.Contains(t, string(body), "Failed to retrieve board feedbacks")
+
+		// Verify that all mock expectations were met
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("CalculMetric fails", func(t *testing.T) {
+		mock := setupTest(t)
+		testDate := time.Now()
+
+		// Setup expectations for GetBoardsByUserUUID
+		boardRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, testDate, testDate, "Test Board")
+		mock.ExpectQuery(`SELECT (.+) FROM "boards" JOIN user_boards ON boards.id = user_boards.board_id JOIN users ON user_boards.user_id = users.id WHERE users.uuid = \$1`).
+			WithArgs("test-user-uuid").
+			WillReturnRows(boardRows)
+
+		// Setup expectations for validateBoardExists
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+				AddRow(1, testDate, testDate, "Test Board"))
+
+		// Setup expectations for GetBoardsWithFeedbacks
+		boardQueryRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "name"}).
+			AddRow(1, testDate, testDate, "Test Board")
+		mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnRows(boardQueryRows)
+
+		feedbackQueryRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "date", "channel", "text", "board_id", "sentiment", "score"}).
+			AddRow(1, testDate, testDate, testDate, "test", "Great feedback", 1, "positive", 0.95)
+		mock.ExpectQuery(`SELECT \* FROM "feedbacks" WHERE "feedbacks"."board_id" = \$1`).
+			WithArgs(1).
+			WillReturnRows(feedbackQueryRows)
+
+		// Setup expectations for GetAnalysisByFeedbackID to fail (causing CalculMetric to fail)
+		mock.ExpectQuery(`SELECT \* FROM "analyses" WHERE feedback_id = \$1 ORDER BY "analyses"."id" LIMIT \$2`).
+			WithArgs(1, 1).
+			WillReturnError(errors.New("analysis query failed"))
+
+		// Create test app and handler
+		app := fiber.New()
+		app.Get("/api/board/metrics", func(c *fiber.Ctx) error {
+			c.Locals("userUUID", "test-user-uuid")
+			return BoardMetricsHandler(c)
+		})
+
+		// Create test request
+		req := httptest.NewRequest(http.MethodGet, "/api/board/metrics", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Execute request
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+
+		// Assert response
+		assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
+
+		// Read and verify response body
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.Contains(t, string(body), "Failed to calculate metrics")
+
+		// Verify that all mock expectations were met
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
 	})
 }
 
