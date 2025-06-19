@@ -42,6 +42,11 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	// Initialisation de Redis
+	database.InitRedis(
+		env.Get("REDIS_URL"),
+	)
+
 	// Initialize and automigrate the models
 	err = models.InitModels()
 	if err != nil {

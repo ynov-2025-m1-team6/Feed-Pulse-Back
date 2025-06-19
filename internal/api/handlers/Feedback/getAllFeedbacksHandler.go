@@ -4,6 +4,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Feedback"
+	feedbackModel "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
 )
 
 // GetAllFeedbacksHandler godoc
@@ -33,5 +34,17 @@ func GetAllFeedbacksHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(feedbacks)
+	var result []feedbackModel.Feedback
+	for _, fb := range feedbacks {
+		cached, err := Feedback.GetFeedbackFromCache(fb.Id)
+		if err == nil {
+			result = append(result, cached)
+		} else {
+			// Non trouvé en cache, on ajoute depuis la base et on le met en cache
+			result = append(result, fb)
+			_ = Feedback.SetFeedbackToCache(fb)
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(result)
 }
