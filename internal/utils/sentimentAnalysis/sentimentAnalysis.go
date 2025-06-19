@@ -3,6 +3,8 @@ package sentimentAnalysis
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/gage-technologies/mistral-go"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
@@ -19,7 +21,7 @@ func InitSentimentAnalysis(apiKey string, emailPass string) {
 
 func SentimentAnalysis(feedback Feedback.Feedback, userEmail string) (Analysis.Analysis, error) {
 	// Example: Using Chat Completions
-	maxRetries := 5
+	maxRetries := 10
 	retryCount := 0
 	retry := true
 	var chatRes *mistral.ChatCompletionResponse
@@ -40,11 +42,10 @@ func SentimentAnalysis(feedback Feedback.Feedback, userEmail string) (Analysis.A
 				SafePrompt:     false,
 				ResponseFormat: mistral.ResponseFormatJsonObject,
 			})
-		fmt.Println("error", err)
-		fmt.Println("chatRes", chatRes)
-		fmt.Println("text", feedback.Text)
 		if err != nil {
 			retry = true
+			// Tempo to avoid hitting the API too quickly
+			time.Sleep(time.Second * 5)
 		}
 	}
 	if chatRes == nil {
