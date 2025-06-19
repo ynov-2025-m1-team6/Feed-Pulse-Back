@@ -1,12 +1,17 @@
 package database
 
 import (
+	"context"
 	"errors"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+var (
+	DB          *gorm.DB
+	RedisClient *redis.Client
+)
 
 func InitDatabase(user, password, dbname, host, port, sslMode string) error {
 	if DB != nil {
@@ -24,4 +29,16 @@ func InitDatabase(user, password, dbname, host, port, sslMode string) error {
 	db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"")
 	DB = db
 	return nil
+}
+
+func InitRedis(addr, password string, db int) {
+	RedisClient = redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: password,
+		DB:       db,
+	})
+}
+
+func GetRedisContext() context.Context {
+	return context.Background()
 }

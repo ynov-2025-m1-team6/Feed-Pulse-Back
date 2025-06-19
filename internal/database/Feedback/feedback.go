@@ -1,7 +1,9 @@
 package Feedback
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	Analysis2 "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
@@ -9,6 +11,7 @@ import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 	"gorm.io/gorm"
+	"time"
 )
 
 // GetAllFeedbacks returns all feedbacks
@@ -125,4 +128,38 @@ func GetFeedbacksByChannel(channel string) ([]Feedback.Feedback, error) {
 		return nil, result.Error
 	}
 	return feedbacks, nil
+}
+
+// SetFeedbackToCache stocke un feedback individuellement dans Redis
+func SetFeedbackToCache(feedback Feedback.Feedback) error {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedback:%d", feedback.Id)
+	jsonData, err := json.Marshal(feedback)
+	if err != nil {
+		return err
+	}
+	return database.RedisClient.Set(ctx, key, jsonData, 10*time.Minute).Err()
+}
+
+// GetFeedbackFromCache récupère un feedback depuis Redis
+func GetFeedbackFromCache(id int) (Feedback.Feedback, error) {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedback:%d", id)
+	val, err := database.RedisClient.Get(ctx, key).Result()
+	if err != nil {
+		return Feedback.Feedback{}, err
+	}
+	var feedback Feedback.Feedback
+	err = json.Unmarshal([]byte(val), &feedback)
+	if err != nil {
+		return Feedback.Feedback{}, err
+	}
+	return feedback, nil
+}
+
+// DeleteFeedbackFromCache supprime un feedback du cache Redis
+func DeleteFeedbackFromCache(id int) error {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedback:%d", id)
+	return database.RedisClient.Del(ctx, key).Err()
 }
