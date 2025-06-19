@@ -90,7 +90,9 @@ func LoginHandlerWithRepo(c *fiber.Ctx, repo auth.UserRepository) error {
 				Extra: map[string]interface{}{
 					"error": err.Error(),
 					"body":  string(c.Body()),
-					"login": user.Login,
+				},
+				User: sentry.User{
+					Username: user.Login,
 				},
 				Level: sentry.LevelWarning,
 				Tags: map[string]string{
@@ -105,7 +107,9 @@ func LoginHandlerWithRepo(c *fiber.Ctx, repo auth.UserRepository) error {
 				Extra: map[string]interface{}{
 					"error": err.Error(),
 					"body":  string(c.Body()),
-					"login": user.Login,
+				},
+				User: sentry.User{
+					Username: user.Login,
 				},
 				Level: sentry.LevelWarning,
 				Tags: map[string]string{
@@ -120,7 +124,9 @@ func LoginHandlerWithRepo(c *fiber.Ctx, repo auth.UserRepository) error {
 				Extra: map[string]interface{}{
 					"error": err.Error(),
 					"body":  string(c.Body()),
-					"login": user.Login,
+				},
+				User: sentry.User{
+					Username: user.Login,
 				},
 				Level: sentry.LevelError,
 				Tags: map[string]string{
@@ -139,7 +145,9 @@ func LoginHandlerWithRepo(c *fiber.Ctx, repo auth.UserRepository) error {
 			Message: "Failed to create session during login",
 			Extra: map[string]interface{}{
 				"error": err.Error(),
-				"login": user.Login,
+			},
+			User: sentry.User{
+				Username: user.Login,
 			},
 			Level: sentry.LevelError,
 			Tags: map[string]string{

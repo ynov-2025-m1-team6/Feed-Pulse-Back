@@ -79,8 +79,10 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Failed to retrieve user ID for UUID %s: %v", userUUID, err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"user_uuid": userUUID,
-				"error":     err.Error(),
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "FetchFeedbackHandler",
@@ -101,9 +103,12 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Failed to retrieve boards for user ID %d: %v", userId, err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"user_id": userId,
-				"error":   err.Error(),
+				"error": err.Error(),
 			},
+			User: sentry.User{
+				ID: userUUID,
+			},
+
 			Tags: map[string]string{
 				"handler": "FetchFeedbackHandler",
 				"action":  "fetch_feedback",
@@ -117,8 +122,8 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: fmt.Sprintf("No boards found for user ID %d", userId),
 			Level:   sentry.LevelWarning,
-			Extra: map[string]interface{}{
-				"user_id": userId,
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "FetchFeedbackHandler",
@@ -206,9 +211,11 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Database error while saving feedbacks: %v", err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"user_email": userEmail,
-				"feedbacks":  validFeedbacks,
-				"error":      err.Error(),
+				"feedbacks": validFeedbacks,
+				"error":     err.Error(),
+			},
+			User: sentry.User{
+				Email: userEmail,
 			},
 			Tags: map[string]string{
 				"handler": "FetchFeedbackHandler",

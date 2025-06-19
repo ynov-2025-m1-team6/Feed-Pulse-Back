@@ -48,8 +48,10 @@ func UserInfoHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 			Message: "Failed to retrieve user information",
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"userUUID": userUUID,
-				"error":    err.Error(),
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "UserInfoHandler",

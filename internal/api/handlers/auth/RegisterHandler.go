@@ -87,10 +87,9 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 	if registerUser.Username == "" || registerUser.Email == "" || registerUser.Password == "" {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: "Missing required fields in registration request",
-			Extra: map[string]interface{}{
-				"username": registerUser.Username,
-				"email":    registerUser.Email,
-				"password": registerUser.Password,
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
 			},
 			Level: sentry.LevelWarning,
 			Tags: map[string]string{
@@ -105,8 +104,10 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 			Message: "Password too short in registration request",
 			Extra: map[string]interface{}{
 				"password_length": len(registerUser.Password),
-				"username":        registerUser.Username,
-				"email":           registerUser.Email,
+			},
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
 			},
 			Level: sentry.LevelWarning,
 			Tags: map[string]string{
@@ -121,8 +122,10 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 			Message: "Password too long in registration request",
 			Extra: map[string]interface{}{
 				"password_length": len(registerUser.Password),
-				"username":        registerUser.Username,
-				"email":           registerUser.Email,
+			},
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
 			},
 			Level: sentry.LevelWarning,
 			Tags: map[string]string{
@@ -135,9 +138,9 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 	if !utils.IsValidEmail(registerUser.Email) {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: "Invalid email format in registration request",
-			Extra: map[string]interface{}{
-				"email":    registerUser.Email,
-				"username": registerUser.Username,
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
 			},
 			Level: sentry.LevelWarning,
 			Tags: map[string]string{
@@ -153,9 +156,11 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: "Failed to hash password during registration",
 			Extra: map[string]interface{}{
-				"error":    err.Error(),
-				"username": registerUser.Username,
-				"email":    registerUser.Email,
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
 			},
 			Level: sentry.LevelError,
 			Tags: map[string]string{
@@ -176,9 +181,9 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 	if err == nil && existingUser != nil {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: "Username already exists during registration",
-			Extra: map[string]interface{}{
-				"username": newUser.Username,
-				"email":    newUser.Email,
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
 			},
 			Level: sentry.LevelWarning,
 			Tags: map[string]string{
@@ -193,9 +198,9 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 	if err == nil && existingUser != nil {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: "Email already exists during registration",
-			Extra: map[string]interface{}{
-				"email":    newUser.Email,
-				"username": newUser.Username,
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
 			},
 			Level: sentry.LevelWarning,
 			Tags: map[string]string{
@@ -212,9 +217,11 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: "Failed to create user during registration",
 			Extra: map[string]interface{}{
-				"error":    err.Error(),
-				"username": newUser.Username,
-				"email":    newUser.Email,
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
 			},
 			Level: sentry.LevelError,
 			Tags: map[string]string{
