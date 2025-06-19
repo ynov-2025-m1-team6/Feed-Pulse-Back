@@ -36,6 +36,9 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: "Unauthorized: user not found in context",
 			Level:   sentry.LevelError,
+			User: sentry.User{
+				ID: userUUID,
+			},
 			Tags: map[string]string{
 				"handler": "UploadFeedbackFileHandler",
 				"action":  "upload_feedback_file",
@@ -57,8 +60,10 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Failed to retrieve user ID for UUID %s: %v", userUUID, err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"user_uuid": userUUID,
-				"error":     err.Error(),
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "UploadFeedbackFileHandler",
@@ -79,8 +84,10 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Failed to retrieve boards for user ID %d: %v", userId, err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"user_id": userId,
-				"error":   err.Error(),
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "UploadFeedbackFileHandler",
@@ -95,8 +102,8 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 		sentry.CaptureEvent(&sentry.Event{
 			Message: fmt.Sprintf("No boards found for user ID %d", userId),
 			Level:   sentry.LevelWarning,
-			Extra: map[string]interface{}{
-				"user_id": userId,
+			User: sentry.User{
+				ID: userUUID,
 			},
 			Tags: map[string]string{
 				"handler": "UploadFeedbackFileHandler",
@@ -135,9 +142,11 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Failed to get uploaded file bytes: %v", err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"board_id":   boardID,
-				"user_id":    userId,
-				"user_email": userEmail,
+				"board_id": boardID,
+			},
+			User: sentry.User{
+				ID:    userUUID,
+				Email: userEmail,
 			},
 			Tags: map[string]string{
 				"handler": "UploadFeedbackFileHandler",
@@ -156,10 +165,21 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Failed to parse JSON feedback data: %v", err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"board_id":      boardID,
-				"user_id":       userId,
-				"user_email":    userEmail,
-				"feedback_file": string(fileBytes),
+				"board_id": boardID,
+			},
+			User: sentry.User{
+				ID:    userUUID,
+				Email: userEmail,
+			},
+			Attachments: []*sentry.Attachment{
+				{
+					Filename: "feedback_file.json",
+					Payload:  fileBytes,
+				},
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
 			},
 		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -177,10 +197,21 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("No valid feedback data found after validation for user ID %d", userId),
 			Level:   sentry.LevelWarning,
 			Extra: map[string]interface{}{
-				"user_id":       userId,
-				"user_email":    userEmail,
-				"board_id":      boardID,
-				"feedback_file": string(fileBytes),
+				"board_id": boardID,
+			},
+			User: sentry.User{
+				ID:    userUUID,
+				Email: userEmail,
+			},
+			Attachments: []*sentry.Attachment{
+				{
+					Filename: "feedback_file.json",
+					Payload:  fileBytes,
+				},
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
 			},
 		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -196,10 +227,17 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 			Message: fmt.Sprintf("Database error while uploading feedbacks for user ID %d: %v", userId, err),
 			Level:   sentry.LevelError,
 			Extra: map[string]interface{}{
-				"user_id":       userId,
-				"user_email":    userEmail,
-				"board_id":      boardID,
-				"feedback_file": string(fileBytes),
+				"board_id": boardID,
+			},
+			User: sentry.User{
+				ID:    userUUID,
+				Email: userEmail,
+			},
+			Attachments: []*sentry.Attachment{
+				{
+					Filename: "feedback_file.json",
+					Payload:  fileBytes,
+				},
 			},
 			Tags: map[string]string{
 				"handler": "UploadFeedbackFileHandler",

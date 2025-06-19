@@ -75,8 +75,8 @@ func TestLoginHandler(t *testing.T) {
 				"login":    "nonexistent",
 				"password": "password123",
 			},
-			expectedStatus: fiber.StatusNotFound,
-			expectedBody:   `{"error":"user not found"}`,
+			expectedStatus: fiber.StatusUnauthorized,
+			expectedBody:   `{"error":"invalid credentials"}`,
 		},
 		{
 			name: "Invalid credentials",
