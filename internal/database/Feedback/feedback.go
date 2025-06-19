@@ -140,7 +140,7 @@ func SetFeedbackToCache(feedback Feedback.Feedback) error {
 		return err
 	}
 	if database.RedisClient == nil {
-		return nil
+		return errors.New("Redis client is not initialized")
 	}
 	redis_status := database.RedisClient.Set(ctx, key, string(jsonData), 10*time.Minute)
 
@@ -152,7 +152,7 @@ func GetFeedbackFromCache(id int) (Feedback.Feedback, error) {
 	ctx := database.GetRedisContext()
 	key := fmt.Sprintf("feedback:%d", id)
 	if database.RedisClient == nil {
-		return Feedback.Feedback{}, nil
+		return Feedback.Feedback{}, errors.New("Redis client is not initialized")
 	}
 	val, err := database.RedisClient.Get(ctx, key).Result()
 	if err != nil {
@@ -171,7 +171,7 @@ func DeleteFeedbackFromCache(id int) error {
 	ctx := database.GetRedisContext()
 	key := fmt.Sprintf("feedback:%d", id)
 	if database.RedisClient == nil {
-		return nil
+		return errors.New("Redis client is not initialized")
 	}
 	return database.RedisClient.Del(ctx, key).Err()
 }
@@ -185,7 +185,7 @@ func SetFeedbackWithAnalysisToCache(feedback Feedback.FeedbackWithAnalysis) erro
 		return err
 	}
 	if database.RedisClient == nil {
-		return nil
+		return errors.New("Redis client is not initialized")
 	}
 	return database.RedisClient.Set(ctx, key, jsonData, 10*time.Minute).Err()
 }
@@ -195,7 +195,7 @@ func GetFeedbackWithAnalysisFromCache(id int) (Feedback.FeedbackWithAnalysis, er
 	ctx := database.GetRedisContext()
 	key := fmt.Sprintf("feedbackWithAnalysis:%d", id)
 	if database.RedisClient == nil {
-		return Feedback.FeedbackWithAnalysis{}, nil
+		return Feedback.FeedbackWithAnalysis{}, errors.New("Redis client is not initialized")
 	}
 	val, err := database.RedisClient.Get(ctx, key).Result()
 	if err != nil {
@@ -214,7 +214,7 @@ func DeleteFeedbackWithAnalysisFromCache(id int) error {
 	ctx := database.GetRedisContext()
 	key := fmt.Sprintf("feedbackWithAnalysis:%d", id)
 	if database.RedisClient == nil {
-		return nil
+		return errors.New("Redis client is not initialized")
 	}
 	return database.RedisClient.Del(ctx, key).Err()
 }
