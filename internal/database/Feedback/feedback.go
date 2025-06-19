@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	Analysis2 "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
@@ -11,7 +13,6 @@ import (
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Feedback"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 	"gorm.io/gorm"
-	"time"
 )
 
 // GetAllFeedbacks returns all feedbacks
@@ -138,7 +139,9 @@ func SetFeedbackToCache(feedback Feedback.Feedback) error {
 	if err != nil {
 		return err
 	}
-	return database.RedisClient.Set(ctx, key, jsonData, 10*time.Minute).Err()
+	redis_status := database.RedisClient.Set(ctx, key, string(jsonData), 10*time.Minute)
+
+	return redis_status.Err()
 }
 
 // GetFeedbackFromCache récupère un feedback depuis Redis

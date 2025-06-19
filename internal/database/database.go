@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -31,13 +32,14 @@ func InitDatabase(user, password, dbname, host, port, sslMode string) error {
 	return nil
 }
 
-func InitRedis(addr, username, password string, db int) {
-	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Username: username,
-		Password: password,
-		DB:       db,
-	})
+func InitRedis(url string) {
+	opts, err := redis.ParseURL(url)
+	if err != nil {
+		panic(err)
+	}
+	opts.ReadTimeout = 5 * 60 * 1000000000 // 5 minutes
+
+	RedisClient = redis.NewClient(opts)
 }
 
 func GetRedisContext() context.Context {
