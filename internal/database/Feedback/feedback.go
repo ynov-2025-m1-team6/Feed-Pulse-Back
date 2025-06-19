@@ -1,7 +1,11 @@
 package Feedback
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"time"
+
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	Analysis2 "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Analysis"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/models/Analysis"
@@ -125,4 +129,92 @@ func GetFeedbacksByChannel(channel string) ([]Feedback.Feedback, error) {
 		return nil, result.Error
 	}
 	return feedbacks, nil
+}
+
+// SetFeedbackToCache stocke un feedback individuellement dans Redis
+func SetFeedbackToCache(feedback Feedback.Feedback) error {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedback:%d", feedback.Id)
+	jsonData, err := json.Marshal(feedback)
+	if err != nil {
+		return err
+	}
+	if database.RedisClient == nil {
+		return errors.New("Redis client is not initialized")
+	}
+	redis_status := database.RedisClient.Set(ctx, key, string(jsonData), 10*time.Minute)
+
+	return redis_status.Err()
+}
+
+// GetFeedbackFromCache récupère un feedback depuis Redis
+func GetFeedbackFromCache(id int) (Feedback.Feedback, error) {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedback:%d", id)
+	if database.RedisClient == nil {
+		return Feedback.Feedback{}, errors.New("Redis client is not initialized")
+	}
+	val, err := database.RedisClient.Get(ctx, key).Result()
+	if err != nil {
+		return Feedback.Feedback{}, err
+	}
+	var feedback Feedback.Feedback
+	err = json.Unmarshal([]byte(val), &feedback)
+	if err != nil {
+		return Feedback.Feedback{}, err
+	}
+	return feedback, nil
+}
+
+// DeleteFeedbackFromCache supprime un feedback du cache Redis
+func DeleteFeedbackFromCache(id int) error {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedback:%d", id)
+	if database.RedisClient == nil {
+		return errors.New("Redis client is not initialized")
+	}
+	return database.RedisClient.Del(ctx, key).Err()
+}
+
+// SetFeedbackWithAnalysisToCache stocke un feedback individuellement dans Redis
+func SetFeedbackWithAnalysisToCache(feedback Feedback.FeedbackWithAnalysis) error {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedbackWithAnalysis:%d", feedback.FeedbackID)
+	jsonData, err := json.Marshal(feedback)
+	if err != nil {
+		return err
+	}
+	if database.RedisClient == nil {
+		return errors.New("Redis client is not initialized")
+	}
+	return database.RedisClient.Set(ctx, key, jsonData, 10*time.Minute).Err()
+}
+
+// GetFeedbackWithAnalysisFromCache récupère un feedback depuis Redis
+func GetFeedbackWithAnalysisFromCache(id int) (Feedback.FeedbackWithAnalysis, error) {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedbackWithAnalysis:%d", id)
+	if database.RedisClient == nil {
+		return Feedback.FeedbackWithAnalysis{}, errors.New("Redis client is not initialized")
+	}
+	val, err := database.RedisClient.Get(ctx, key).Result()
+	if err != nil {
+		return Feedback.FeedbackWithAnalysis{}, err
+	}
+	var feedback Feedback.FeedbackWithAnalysis
+	err = json.Unmarshal([]byte(val), &feedback)
+	if err != nil {
+		return Feedback.FeedbackWithAnalysis{}, err
+	}
+	return feedback, nil
+}
+
+// DeleteFeedbackWithAnalysisFromCache supprime un feedback du cache Redis
+func DeleteFeedbackWithAnalysisFromCache(id int) error {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedbackWithAnalysis:%d", id)
+	if database.RedisClient == nil {
+		return errors.New("Redis client is not initialized")
+	}
+	return database.RedisClient.Del(ctx, key).Err()
 }

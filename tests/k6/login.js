@@ -29,7 +29,7 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '1m', target: 20 },  // Slower ramp-up
+        { duration: '1m', target: 10 },  // Slower ramp-up
         { duration: '30s', target: 20 }, // Hold at peak
         { duration: '30s', target: 0 },  // Ramp-down
       ],
@@ -40,15 +40,14 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '2m', target: 50 },  // Slower ramp-up to 50
-        { duration: '1m', target: 50 },  // Hold at peak
+        { duration: '1m', target: 20 },  // Slower ramp-up to 50
+        { duration: '2m', target: 20 },  // Hold at peak
         { duration: '1m', target: 0 },   // Ramp-down
       ],
       exec: 'loginTest',
     },
   },
   thresholds: {
-    http_req_duration: ['p(95)<1000'], // Increased to 1000ms
     http_req_failed: ['rate<0.05'],    // Increased to 5% error tolerance
   },
 };

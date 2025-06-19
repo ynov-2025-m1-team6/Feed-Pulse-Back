@@ -103,5 +103,15 @@ func GetFeedbacksByUserIdHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	// Ajout du cache Redis individuel pour chaque feedback
+	for i, fb := range feedbacks {
+		cached, err := Feedback.GetFeedbackWithAnalysisFromCache(fb.FeedbackID)
+		if err == nil {
+			feedbacks[i] = cached
+		} else {
+			_ = Feedback.SetFeedbackWithAnalysisToCache(fb)
+		}
+	}
+
 	return c.Status(fiber.StatusOK).JSON(feedbacks)
 }
