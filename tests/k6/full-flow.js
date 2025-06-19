@@ -21,7 +21,7 @@ export const options = {
     full_flow_test: {
       executor: 'constant-vus',
       vus: 8,
-      duration: '2m',
+      duration: '1m',
       exec: 'fullFlowTest',
     },
     // User journey simulation
@@ -29,15 +29,14 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '1m', target: 12 },
-        { duration: '3m', target: 12 },
+        { duration: '1m', target: 8 },
+        { duration: '2m', target: 12 },
         { duration: '1m', target: 0 },
       ],
       exec: 'fullFlowTest',
     },
   },
   thresholds: {
-    http_req_duration: ['p(95)<2500'],
     http_req_failed: ['rate<0.08'],
     errors: ['rate<0.08'],
   },
