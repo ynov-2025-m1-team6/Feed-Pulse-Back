@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"github.com/getsentry/sentry-go"
 
 	"github.com/gofiber/fiber/v2"
 	userDB "github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/user"
@@ -68,24 +69,105 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 	// Parse the request body into the RegisterUser struct
 	var registerUser RegisterUser
 	if err := c.BodyParser(&registerUser); err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Failed to parse registration request body",
+			Extra: map[string]interface{}{
+				"error": err.Error(),
+				"body":  string(c.Body()),
+			},
+			Level: sentry.LevelWarning,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "parse_request",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("invalid request payload"))
 	}
 	// Validate the request payload
 	if registerUser.Username == "" || registerUser.Email == "" || registerUser.Password == "" {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Missing required fields in registration request",
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
+			},
+			Level: sentry.LevelWarning,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "validate_request",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("username, email, and password are required"))
 	}
 	if len(registerUser.Password) < 8 {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Password too short in registration request",
+			Extra: map[string]interface{}{
+				"password_length": len(registerUser.Password),
+			},
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
+			},
+			Level: sentry.LevelWarning,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "validate_password_length",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("password must be at least 8 characters long"))
 	}
 	if len(registerUser.Password) > 50 {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Password too long in registration request",
+			Extra: map[string]interface{}{
+				"password_length": len(registerUser.Password),
+			},
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
+			},
+			Level: sentry.LevelWarning,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "validate_password_length",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("password must be at most 50 characters long"))
 	}
 	if !utils.IsValidEmail(registerUser.Email) {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Invalid email format in registration request",
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
+			},
+			Level: sentry.LevelWarning,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "validate_email_format",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusBadRequest, errors.New("invalid email format"))
 	}
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerUser.Password), bcrypt.DefaultCost)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Failed to hash password during registration",
+			Extra: map[string]interface{}{
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
+			},
+			Level: sentry.LevelError,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "hash_password",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusInternalServerError, errors.New("failed to hash password"))
 	}
 	// Create a new registerUser object
@@ -97,17 +179,56 @@ func RegisterHandlerWithRepo(c *fiber.Ctx, repo UserRepository) error {
 	// get the user by username
 	existingUser, err := repo.GetUserByUsername(newUser.Username)
 	if err == nil && existingUser != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Username already exists during registration",
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
+			},
+			Level: sentry.LevelWarning,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "check_username_exists",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusConflict, errors.New("username already exists"))
 	}
 	// get the user by email
 	existingUser, err = repo.GetUserByEmail(newUser.Email)
 	if err == nil && existingUser != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Email already exists during registration",
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
+			},
+			Level: sentry.LevelWarning,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "check_email_exists",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusConflict, errors.New("email already exists"))
 	}
 
 	// Save the registerUser to the database
 	err = repo.CreateUser(newUser)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Failed to create user during registration",
+			Extra: map[string]interface{}{
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				Username: registerUser.Username,
+				Email:    registerUser.Email,
+			},
+			Level: sentry.LevelError,
+			Tags: map[string]string{
+				"handler": "RegisterHandler",
+				"action":  "create_user",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusInternalServerError, errors.New("failed to create user"))
 	}
 

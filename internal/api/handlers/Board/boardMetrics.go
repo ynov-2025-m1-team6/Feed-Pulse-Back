@@ -3,6 +3,7 @@ package Board
 import (
 	"errors"
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"github.com/gofiber/fiber/v2"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database/Board"
@@ -33,17 +34,47 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 	// Get board ID from query parameter - default to 1 if not provided
 	userUUID, ok := middleware.GetUserUUID(c)
 	if !ok {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Unauthorized access: user UUID not found in context",
+			Level:   sentry.LevelError,
+			Tags: map[string]string{
+				"handler": "BoardMetricsHandler",
+				"action":  "get_board_metrics",
+			},
+		})
 		return httpUtils.NewError(c, fiber.StatusUnauthorized, errors.New("unauthorized: user not found in context"))
 	}
 
 	// Get user information from database
 	userBoard, err := Board.GetBoardsByUserUUID(userUUID)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to retrieve boards for user %s: %v", userUUID, err),
+			Level:   sentry.LevelError,
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "BoardMetricsHandler",
+				"action":  "get_board_metrics",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid board",
 		})
 	}
 	if len(userBoard) == 0 {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("No boards found for user %s", userUUID),
+			Level:   sentry.LevelWarning,
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "BoardMetricsHandler",
+				"action":  "get_board_metrics",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "No boards found for this user",
 		})
@@ -52,6 +83,20 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 
 	// Check if the board exists in the database before proceeding
 	if err := validateBoardExists(boardID); err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Board validation failed for ID %d: %v", boardID, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"boardID": boardID,
+			},
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "BoardMetricsHandler",
+				"action":  "get_board_metrics",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -59,6 +104,20 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 
 	board, err := Board.GetBoardsWithFeedbacks(boardID)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to retrieve board feedbacks for board ID %d: %v", boardID, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"boardID": boardID,
+			},
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "BoardMetricsHandler",
+				"action":  "get_board_metrics",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to retrieve board feedbacks: " + err.Error(),
 		})
@@ -66,6 +125,20 @@ func BoardMetricsHandler(c *fiber.Ctx) error {
 
 	metrics, err := calculmetric.CalculMetric(board.Feedbacks)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to calculate metrics for board ID %d: %v", boardID, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"boardID": boardID,
+			},
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "BoardMetricsHandler",
+				"action":  "get_board_metrics",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to calculate metrics: " + err.Error(),
 		})

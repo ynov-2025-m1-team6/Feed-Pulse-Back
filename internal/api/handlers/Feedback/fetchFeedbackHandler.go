@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"io"
 	"math/rand"
 	"net/http"
@@ -55,6 +56,14 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 	// Get user UUID from context
 	userUUID, check := middleware.GetUserUUID(c)
 	if !check {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Unauthorized access: user not found in context",
+			Level:   sentry.LevelError,
+			Tags: map[string]string{
+				"handler": "FetchFeedbackHandler",
+				"action":  "fetch_feedback",
+			},
+		})
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Unauthorized: user not found in context",
 		})
@@ -66,6 +75,20 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 	var u User.User
 	err := database.DB.Model(&User.User{}).Where("uuid = ?", userUUID).Select("id, email").Scan(&u).Error
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to retrieve user ID for UUID %s: %v", userUUID, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "FetchFeedbackHandler",
+				"action":  "fetch_feedback",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to retrieve user ID",
 		})
@@ -76,11 +99,37 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 	// Get board ID from user ID
 	boards, err := Board.GetBoardsByUserID(userId)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to retrieve boards for user ID %d: %v", userId, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
+			},
+
+			Tags: map[string]string{
+				"handler": "FetchFeedbackHandler",
+				"action":  "fetch_feedback",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to retrieve boards for user",
 		})
 	}
 	if len(boards) == 0 {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("No boards found for user ID %d", userId),
+			Level:   sentry.LevelWarning,
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "FetchFeedbackHandler",
+				"action":  "fetch_feedback",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "No boards found for this user",
 		})
@@ -89,6 +138,18 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 
 	// Check if the board exists in the database before proceeding
 	if err := validateBoardExists(boardID); err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Board validation failed for ID %d: %v", boardID, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"board_id": boardID,
+				"error":    err.Error(),
+			},
+			Tags: map[string]string{
+				"handler": "FetchFeedbackHandler",
+				"action":  "fetch_feedback",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -97,6 +158,18 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 	// Fetch comments from external API
 	comments, err := fetchCommentsFromAPI(url)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to fetch comments from API: %v", err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"url":   url,
+				"error": err.Error(),
+			},
+			Tags: map[string]string{
+				"handler": "FetchFeedbackHandler",
+				"action":  "fetch_feedback",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -108,6 +181,17 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 	// Validate feedback data
 	validFeedbacks, preValidationErrors := validateFeedbacks(feedbacks)
 	if len(validFeedbacks) == 0 {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "No valid feedback data found after validation",
+			Level:   sentry.LevelWarning,
+			Extra: map[string]interface{}{
+				"feedbacks": feedbacks,
+			},
+			Tags: map[string]string{
+				"handler": "FetchFeedbackHandler",
+				"action":  "fetch_feedback",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error":             "No valid feedback data found after validation",
 			"validation_errors": preValidationErrors,
@@ -123,6 +207,21 @@ func FetchFeedbackHandler(c *fiber.Ctx) error {
 	// Save feedbacks to database
 	successCount, dbErrors, err := feedbackDB.FetchAndSaveFeedbacks(validFeedbacks, userEmail)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Database error while saving feedbacks: %v", err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"feedbacks": validFeedbacks,
+				"error":     err.Error(),
+			},
+			User: sentry.User{
+				Email: userEmail,
+			},
+			Tags: map[string]string{
+				"handler": "FetchFeedbackHandler",
+				"action":  "fetch_feedback",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Database error: " + err.Error(),
 		})

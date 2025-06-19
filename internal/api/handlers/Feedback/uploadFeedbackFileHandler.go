@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"io"
 
 	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/database"
@@ -32,6 +33,17 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 	// Get user UUID from context
 	userUUID, check := middleware.GetUserUUID(c)
 	if !check {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: "Unauthorized: user not found in context",
+			Level:   sentry.LevelError,
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Unauthorized: user not found in context",
 		})
@@ -44,6 +56,20 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 	var u User.User
 	err := database.DB.Model(&User.User{}).Where("uuid = ?", userUUID).Select("id, email").Scan(&u).Error
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to retrieve user ID for UUID %s: %v", userUUID, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to retrieve user ID",
 		})
@@ -54,11 +80,36 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 	// Get board ID from user ID
 	boards, err := Board.GetBoardsByUserID(userId)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to retrieve boards for user ID %d: %v", userId, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"error": err.Error(),
+			},
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to retrieve boards for user",
 		})
 	}
 	if len(boards) == 0 {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("No boards found for user ID %d", userId),
+			Level:   sentry.LevelWarning,
+			User: sentry.User{
+				ID: userUUID,
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "No boards found for this user",
 		})
@@ -67,6 +118,18 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 
 	// Check if the board exists
 	if err := validateBoardExists(boardID); err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Board with ID %d does not exist: %v", boardID, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"board_id": boardID,
+				"error":    err.Error(),
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -75,6 +138,21 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 	// Process the uploaded file
 	fileBytes, err := getUploadedFileBytes(c)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to get uploaded file bytes: %v", err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"board_id": boardID,
+			},
+			User: sentry.User{
+				ID:    userUUID,
+				Email: userEmail,
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -83,6 +161,27 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 	// Parse the JSON data
 	feedbacksJson, err := parseFeedbackJson(fileBytes)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Failed to parse JSON feedback data: %v", err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"board_id": boardID,
+			},
+			User: sentry.User{
+				ID:    userUUID,
+				Email: userEmail,
+			},
+			Attachments: []*sentry.Attachment{
+				{
+					Filename: "feedback_file.json",
+					Payload:  fileBytes,
+				},
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid JSON format: " + err.Error(),
 		})
@@ -94,6 +193,27 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 	// Validate the feedbacks
 	validFeedbacks, preValidationErrors := validateFeedbacks(feedbacks)
 	if len(validFeedbacks) == 0 {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("No valid feedback data found after validation for user ID %d", userId),
+			Level:   sentry.LevelWarning,
+			Extra: map[string]interface{}{
+				"board_id": boardID,
+			},
+			User: sentry.User{
+				ID:    userUUID,
+				Email: userEmail,
+			},
+			Attachments: []*sentry.Attachment{
+				{
+					Filename: "feedback_file.json",
+					Payload:  fileBytes,
+				},
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error":             "No valid feedback data found after validation",
 			"validation_errors": preValidationErrors,
@@ -103,6 +223,27 @@ func UploadFeedbackFileHandler(c *fiber.Ctx) error {
 	// Save feedbacks to database using the dedicated database function
 	successCount, dbErrors, err := feedbackDB.UploadFeedbacksFromFile(feedbacks, userEmail)
 	if err != nil {
+		sentry.CaptureEvent(&sentry.Event{
+			Message: fmt.Sprintf("Database error while uploading feedbacks for user ID %d: %v", userId, err),
+			Level:   sentry.LevelError,
+			Extra: map[string]interface{}{
+				"board_id": boardID,
+			},
+			User: sentry.User{
+				ID:    userUUID,
+				Email: userEmail,
+			},
+			Attachments: []*sentry.Attachment{
+				{
+					Filename: "feedback_file.json",
+					Payload:  fileBytes,
+				},
+			},
+			Tags: map[string]string{
+				"handler": "UploadFeedbackFileHandler",
+				"action":  "upload_feedback_file",
+			},
+		})
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Database error: " + err.Error(),
 		})

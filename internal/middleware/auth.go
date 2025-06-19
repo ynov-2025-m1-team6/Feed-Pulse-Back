@@ -4,6 +4,7 @@ package middleware
 import (
 	"errors"
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -31,6 +32,14 @@ func AuthRequired() fiber.Handler {
 
 		// Check if the authorization header exists and has the bearer format
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			sentry.CaptureEvent(&sentry.Event{
+				Message: "Unauthorized access attempt: Missing or invalid authorization header",
+				Level:   sentry.LevelError,
+				Tags: map[string]string{
+					"handler": "AuthRequired",
+					"action":  "validate_token",
+				},
+			})
 			return httpUtils.NewError(c, fiber.StatusUnauthorized, fmt.Errorf("unauthorized: Missing or invalid authorization header"))
 		}
 
@@ -41,6 +50,14 @@ func AuthRequired() fiber.Handler {
 		// Validate the session using the session manager
 		valid, err := sessionManager.Instance.ValidateSession(tokenString)
 		if err != nil || !valid {
+			sentry.CaptureEvent(&sentry.Event{
+				Message: fmt.Sprintf("Unauthorized access attempt: %v", err),
+				Level:   sentry.LevelError,
+				Tags: map[string]string{
+					"handler": "AuthRequired",
+					"action":  "validate_token",
+				},
+			})
 			return httpUtils.NewError(c, fiber.StatusUnauthorized, fmt.Errorf("unauthorized: Invalid or expired token"))
 		}
 
@@ -53,6 +70,14 @@ func AuthRequired() fiber.Handler {
 		})
 
 		if err != nil || !token.Valid {
+			sentry.CaptureEvent(&sentry.Event{
+				Message: fmt.Sprintf("Unauthorized access attempt: %v", err),
+				Level:   sentry.LevelError,
+				Tags: map[string]string{
+					"handler": "AuthRequired",
+					"action":  "parse_token",
+				},
+			})
 			return httpUtils.NewError(c, fiber.StatusUnauthorized, fmt.Errorf("unauthorized: Invalid token"))
 		}
 

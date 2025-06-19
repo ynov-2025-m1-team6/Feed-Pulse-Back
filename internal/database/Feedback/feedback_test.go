@@ -2,10 +2,11 @@ package Feedback
 
 import (
 	"errors"
-	"github.com/tot0p/env"
-	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 	"testing"
 	"time"
+
+	"github.com/tot0p/env"
+	"github.com/ynov-2025-m1-team6/Feed-Pulse-Back/internal/utils/sentimentAnalysis"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -208,6 +209,32 @@ func TestCreateFeedback(t *testing.T) {
 
 	_, err = CreateFeedback(testFeedback, "dummyemail@example.com")
 	assert.NotNil(t, err)
+}
+
+func TestCreateFeedback_BoardNotFound(t *testing.T) {
+	mock, err := setupTest()
+	if err != nil {
+		t.Fatalf("Error setting up test: %v", err)
+	}
+
+	// Define test data
+	testDate := time.Now()
+	testFeedback := Feedback.Feedback{
+		Date:    testDate,
+		Channel: "email",
+		Text:    "The application is great!",
+		BoardID: 999, // Non-existent board ID
+	}
+
+	// Setup expectations for checking if board exists
+	mock.ExpectQuery(`SELECT \* FROM "boards" WHERE id = \$1 ORDER BY "boards"."id" LIMIT \$2`).
+		WithArgs(999, 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	// Call the function we're testing
+	_, err = CreateFeedback(testFeedback, "test@example.com")
+	assert.NotNil(t, err)
+	assert.Equal(t, "board not found: the referenced board_id does not exist", err.Error())
 }
 
 func TestUpdateFeedback(t *testing.T) {
