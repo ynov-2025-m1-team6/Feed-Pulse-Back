@@ -45,7 +45,9 @@ func main() {
 	// Initialisation de Redis
 	database.InitRedis(
 		env.Get("REDIS_ADDR"),
+		env.Get("REDIS_USER"),
 		env.Get("REDIS_PASSWORD"),
+
 		0, // DB par défaut
 	)
 
