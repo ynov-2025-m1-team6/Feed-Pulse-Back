@@ -1,6 +1,6 @@
 # 📊 Résultats des Tests K6 sur Staging (Feed-Pulse-Back)
 
-**Date d'exécution** : 17 juin 2025  
+**Date d'exécution** : 17 juin 2025
 **Environnement** : Staging (`https://feed-pulse-api-dev.onrender.com`)
 
 ## 🎯 Résumé Global

@@ -58,7 +58,7 @@ function loginUser() {
   };
 
   const response = http.post(url, payload, params);
-  
+
   const success = check(response, {
     'login status is 200': (r) => r.status === 200,
     'login response time < 1000ms': (r) => r.timings.duration < 1000,    'has authorization header': (r) => r.headers['authorization'] !== undefined || r.headers['Authorization'] !== undefined,
@@ -67,7 +67,7 @@ function loginUser() {
   if (success && response.status === 200) {
     return response.headers['authorization'] || response.headers['Authorization'];
   }
-  
+
   return null;
 }
 
@@ -122,18 +122,18 @@ function logoutUser(token) {
 export function authFlowTest() {
   // Step 1: Login
   const token = loginUser();
-  
+
   if (token) {
     sleep(0.5);
-    
+
     // Step 2: Get user info
     const userInfoSuccess = getUserInfo(token);
-    
+
     sleep(0.5);
-    
+
     // Step 3: Logout
     const logoutSuccess = logoutUser(token);
-    
+
     // Overall flow check
     const flowSuccess = token && userInfoSuccess && logoutSuccess;
     errorRate.add(!flowSuccess);

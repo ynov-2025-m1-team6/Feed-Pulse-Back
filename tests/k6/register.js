@@ -47,7 +47,7 @@ export function registerTest() {
   // Generate unique user for each test iteration
   const uniqueId = Math.floor(Math.random() * 1000000);
   const url = `${baseUrl}/api/auth/register`;
-  
+
   const payload = JSON.stringify({
     username: `testuser${uniqueId}`,
     email: `test${uniqueId}@example.com`,

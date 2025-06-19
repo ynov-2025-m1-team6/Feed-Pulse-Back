@@ -72,7 +72,7 @@ function getAuthToken() {
     if (response.status === 200 && (response.headers['authorization'] || response.headers['Authorization'])) {
     return response.headers['authorization'] || response.headers['Authorization'];
   }
-  
+
   return null;
 }
 
@@ -122,7 +122,7 @@ function testBoardMetrics(token) {
 export function boardTest() {
   // Step 1: Login to get token
   const token = getAuthToken();
-  
+
   if (!token) {
     errorRate.add(true);
     sleep(1);

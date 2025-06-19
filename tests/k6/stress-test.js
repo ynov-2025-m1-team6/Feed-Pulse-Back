@@ -70,7 +70,7 @@ function getAuthToken() {
     if (response.status === 200 && (response.headers['authorization'] || response.headers['Authorization'])) {
     return response.headers['authorization'] || response.headers['Authorization'];
   }
-  
+
   return null;
 }
 
@@ -78,7 +78,7 @@ function getAuthToken() {
 export function stressTest() {
   // Randomly choose which endpoint to stress test
   const testChoice = Math.random();
-  
+
   if (testChoice < 0.2) {
     // 20% - Test ping endpoint (lightest)
     testPingEndpoint();

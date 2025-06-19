@@ -7,7 +7,7 @@ echo 📊 Test 1/6: Ping
 k6 run -e ENVIRONMENT=staging ping.js
 
 echo.
-echo 📊 Test 2/6: Login  
+echo 📊 Test 2/6: Login
 k6 run -e ENVIRONMENT=staging login.js
 
 echo.

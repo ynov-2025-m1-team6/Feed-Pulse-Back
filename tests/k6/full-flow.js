@@ -69,7 +69,7 @@ function loginUser() {
   };
 
   const response = http.post(url, payload, params);
-  
+
   const success = check(response, {
     'login status is 200': (r) => r.status === 200,
     'login response time < 1000ms': (r) => r.timings.duration < 1000,    'has authorization header': (r) => r.headers['authorization'] !== undefined || r.headers['Authorization'] !== undefined,
@@ -78,7 +78,7 @@ function loginUser() {
   if (success && response.status === 200) {
     return response.headers['authorization'] || response.headers['Authorization'];
   }
-  
+
   return null;
 }
 
@@ -107,7 +107,7 @@ function fetchFeedbacks(token) {
   if (!token) return false;
 
   const url = `${baseUrl}/api/feedbacks/fetch`;
-  
+
   const payload = JSON.stringify({
     limit: 5,
     offset: 0
@@ -197,7 +197,7 @@ export function fullFlowTest() {
 
   // Step 2: Login
   const token = loginUser();
-  
+
   if (!token) {
     errorRate.add(true);
     sleep(2);
@@ -226,9 +226,9 @@ export function fullFlowTest() {
   const logoutSuccess = logoutUser(token);
 
   // Overall flow success check
-  const overallSuccess = pingSuccess && token && userInfoSuccess && 
+  const overallSuccess = pingSuccess && token && userInfoSuccess &&
                         fetchSuccess && metricsSuccess && analysesSuccess && logoutSuccess;
-  
+
   errorRate.add(!overallSuccess);
 
   // Simulate user think time

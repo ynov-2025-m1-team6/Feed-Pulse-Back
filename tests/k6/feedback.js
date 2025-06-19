@@ -61,7 +61,7 @@ function getAuthToken() {
     if (response.status === 200 && (response.headers['authorization'] || response.headers['Authorization'])) {
     return response.headers['authorization'] || response.headers['Authorization'];
   }
-  
+
   return null;
 }
 
@@ -70,7 +70,7 @@ function testFeedbackUpload(token) {
   if (!token) return false;
 
   const url = `${baseUrl}/api/feedbacks/upload`;
-  
+
   // Create a mock CSV content
   const csvContent = `name,email,feedback,rating
 John Doe,john@example.com,"Great service, very satisfied!",5
@@ -108,7 +108,7 @@ function testFeedbackFetch(token) {
   if (!token) return false;
 
   const url = `${baseUrl}/api/feedbacks/fetch`;
-  
+
   const payload = JSON.stringify({
     limit: 10,
     offset: 0
@@ -169,7 +169,7 @@ function testGetFeedbacksByUserId(token) {
 export function feedbackTest() {
   // Step 1: Login to get token
   const token = getAuthToken();
-  
+
   if (!token) {
     errorRate.add(true);
     sleep(1);
