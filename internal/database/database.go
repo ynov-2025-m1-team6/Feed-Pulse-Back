@@ -31,9 +31,10 @@ func InitDatabase(user, password, dbname, host, port, sslMode string) error {
 	return nil
 }
 
-func InitRedis(addr, password string, db int) {
+func InitRedis(addr, username, password string, db int) {
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     addr,
+		Username: username,
 		Password: password,
 		DB:       db,
 	})

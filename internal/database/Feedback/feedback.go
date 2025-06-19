@@ -163,3 +163,37 @@ func DeleteFeedbackFromCache(id int) error {
 	key := fmt.Sprintf("feedback:%d", id)
 	return database.RedisClient.Del(ctx, key).Err()
 }
+
+// SetFeedbackWithAnalysisToCache stocke un feedback individuellement dans Redis
+func SetFeedbackWithAnalysisToCache(feedback Feedback.FeedbackWithAnalysis) error {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedbackWithAnalysis:%d", feedback.FeedbackID)
+	jsonData, err := json.Marshal(feedback)
+	if err != nil {
+		return err
+	}
+	return database.RedisClient.Set(ctx, key, jsonData, 10*time.Minute).Err()
+}
+
+// GetFeedbackWithAnalysisFromCache récupère un feedback depuis Redis
+func GetFeedbackWithAnalysisFromCache(id int) (Feedback.FeedbackWithAnalysis, error) {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedbackWithAnalysis:%d", id)
+	val, err := database.RedisClient.Get(ctx, key).Result()
+	if err != nil {
+		return Feedback.FeedbackWithAnalysis{}, err
+	}
+	var feedback Feedback.FeedbackWithAnalysis
+	err = json.Unmarshal([]byte(val), &feedback)
+	if err != nil {
+		return Feedback.FeedbackWithAnalysis{}, err
+	}
+	return feedback, nil
+}
+
+// DeleteFeedbackWithAnalysisFromCache supprime un feedback du cache Redis
+func DeleteFeedbackWithAnalysisFromCache(id int) error {
+	ctx := database.GetRedisContext()
+	key := fmt.Sprintf("feedbackWithAnalysis:%d", id)
+	return database.RedisClient.Del(ctx, key).Err()
+}
