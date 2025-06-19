@@ -139,6 +139,9 @@ func SetFeedbackToCache(feedback Feedback.Feedback) error {
 	if err != nil {
 		return err
 	}
+	if database.RedisClient == nil {
+		return nil
+	}
 	redis_status := database.RedisClient.Set(ctx, key, string(jsonData), 10*time.Minute)
 
 	return redis_status.Err()
@@ -148,6 +151,9 @@ func SetFeedbackToCache(feedback Feedback.Feedback) error {
 func GetFeedbackFromCache(id int) (Feedback.Feedback, error) {
 	ctx := database.GetRedisContext()
 	key := fmt.Sprintf("feedback:%d", id)
+	if database.RedisClient == nil {
+		return Feedback.Feedback{}, nil
+	}
 	val, err := database.RedisClient.Get(ctx, key).Result()
 	if err != nil {
 		return Feedback.Feedback{}, err
@@ -164,6 +170,9 @@ func GetFeedbackFromCache(id int) (Feedback.Feedback, error) {
 func DeleteFeedbackFromCache(id int) error {
 	ctx := database.GetRedisContext()
 	key := fmt.Sprintf("feedback:%d", id)
+	if database.RedisClient == nil {
+		return nil
+	}
 	return database.RedisClient.Del(ctx, key).Err()
 }
 
@@ -175,6 +184,9 @@ func SetFeedbackWithAnalysisToCache(feedback Feedback.FeedbackWithAnalysis) erro
 	if err != nil {
 		return err
 	}
+	if database.RedisClient == nil {
+		return nil
+	}
 	return database.RedisClient.Set(ctx, key, jsonData, 10*time.Minute).Err()
 }
 
@@ -182,6 +194,9 @@ func SetFeedbackWithAnalysisToCache(feedback Feedback.FeedbackWithAnalysis) erro
 func GetFeedbackWithAnalysisFromCache(id int) (Feedback.FeedbackWithAnalysis, error) {
 	ctx := database.GetRedisContext()
 	key := fmt.Sprintf("feedbackWithAnalysis:%d", id)
+	if database.RedisClient == nil {
+		return Feedback.FeedbackWithAnalysis{}, nil
+	}
 	val, err := database.RedisClient.Get(ctx, key).Result()
 	if err != nil {
 		return Feedback.FeedbackWithAnalysis{}, err
@@ -198,5 +213,8 @@ func GetFeedbackWithAnalysisFromCache(id int) (Feedback.FeedbackWithAnalysis, er
 func DeleteFeedbackWithAnalysisFromCache(id int) error {
 	ctx := database.GetRedisContext()
 	key := fmt.Sprintf("feedbackWithAnalysis:%d", id)
+	if database.RedisClient == nil {
+		return nil
+	}
 	return database.RedisClient.Del(ctx, key).Err()
 }
